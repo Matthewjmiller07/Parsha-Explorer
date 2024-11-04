@@ -13,7 +13,7 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
-
+    
         .verse-container {
             background-color: white;
             border-radius: 8px;
@@ -21,7 +21,7 @@
             margin: 20px 0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
+    
         .hebrew-text {
             font-size: 24px;
             line-height: 1.8;
@@ -29,7 +29,7 @@
             direction: rtl;
             text-align: right;
         }
-
+    
         .word-info {
             font-size: 14px;
             color: #666;
@@ -40,26 +40,37 @@
             direction: ltr;
             text-align: left;
         }
-
+    
         .controls {
             margin-bottom: 20px;
             display: flex;
-            gap: 10px;
+            gap: 20px;
             flex-wrap: wrap;
-            align-items: center;
         }
-
+    
+        .controls-section {
+            background-color: #e9f5ff;
+            border: 1px solid #b3d8ff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+        }
+    
         select, input, button {
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ddd;
             font-size: 16px;
         }
-
+    
         input {
             width: 80px;
         }
-
+    
         button {
             background-color: #4a90e2;
             color: white;
@@ -67,17 +78,17 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-
+    
         button:hover {
             background-color: #357abd;
         }
-
+    
         #loading {
             color: #666;
             text-align: center;
             padding: 20px;
         }
-
+    
         .error {
             color: #d32f2f;
             padding: 10px;
@@ -85,7 +96,7 @@
             background-color: #ffebee;
             border-radius: 4px;
         }
-
+    
         .word-container {
             display: inline-block;
             margin: 0 5px;
@@ -93,29 +104,29 @@
             padding: 2px 4px;
             transition: background-color 0.2s;
         }
-
+    
         .word-container:hover {
             background-color: #f0f0f0;
             border-radius: 4px;
         }
-
+    
         .navigation-buttons {
             display: flex;
             gap: 10px;
             margin-top: 20px;
         }
-
+    
         .navigation-buttons button {
             flex: 1;
         }
-
+    
         .reference-display {
             text-align: center;
             font-size: 18px;
             margin-bottom: 10px;
             color: #4a4a4a;
         }
-
+    
         .verse-label {
             font-size: 16px;
             color: #666;
@@ -123,71 +134,88 @@
             direction: ltr;
             text-align: left;
         }
-
-         /* Highlight classes for different morphology prefixes */
-         .highlight-noun {
-        background-color: yellow;
-        font-weight: bold;
-    }
-
-    /* Additional underline for proper nouns (containing 'Np') */
-    .highlight-proper-noun {
-        text-decoration: underline;
-    }
-
-    /* Style for the key section */
-    .highlight-key {
-        margin-top: 10px;
-        padding: 10px;
-        background-color: #f0f0f0;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-
-    .highlight-key div {
-        margin-bottom: 5px;
-    }
-
-    /* Add more classes as needed */
+    
+        /* Highlight classes for different morphology prefixes */
+        .highlight-noun {
+            background-color: yellow;
+            font-weight: bold;
+        }
+    
+        /* Additional underline for proper nouns (containing 'Np') */
+        .highlight-proper-noun {
+            text-decoration: underline;
+        }
+    
+        /* Style for the key section */
+        .highlight-key {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    
+        .highlight-key div {
+            margin-bottom: 5px;
+        }
     </style>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js library -->
 
 </head>
 <body>
     <div class="controls">
-        <label for="parshaSelect">Parsha:</label>
-        <select id="parshaSelect" onchange="loadAliyot()">
-            <option value="">Select Parsha</option>
-            <option value="Genesis">Genesis (בראשית)</option>
-            <option value="Exodus">Exodus (שמות)</option>
-            <option value="Leviticus">Leviticus (ויקרא)</option>
-            <option value="Numbers">Numbers (במדבר)</option>
-            <option value="Deuteronomy">Deuteronomy (דברים)</option>
-        </select>
-
-        <label for="aliyaSelect">Aliya:</label>
-        <select id="aliyaSelect" onchange="loadAliyaRange()">
-            <option value="">Select Aliya</option>
-        </select>
-
-        <input type="number" id="chapter" min="1" value="1" placeholder="Chapter">
-        <input type="number" id="verse" min="1" value="1" placeholder="Verse">
-        <button onclick="loadVerse()">Load Specific Verse</button>
-    </div>
-
-    <div id="loading" style="display:none">Loading...</div>
-    <div id="error" class="error" style="display:none"></div>
+        <!-- Parsha and Aliya Selection Section -->
+        <div class="controls-section">
+            <label for="parshaSelect">Parsha:</label>
+            <select id="parshaSelect" onchange="loadAliyot()">
+                <option value="">Select Parsha</option>
+                <!-- Dynamically populated parsha names will go here -->
+            </select>
     
-    <div class="reference-display" id="referenceDisplay"></div>
-
-    <div id="verseContainer"></div>
+            <label for="aliyaSelect">Aliya:</label>
+            <select id="aliyaSelect" onchange="loadAliyaRange()">
+                <option value="">Select Aliya</option>
+            </select>
+        </div>
+    
+        <!-- Book, Chapter, and Verse Selection Section -->
+        <div class="controls-section">
+            <label for="bookSelect">Book:</label>
+            <select id="bookSelect">
+                <option value="">Select Book</option>
+                <option value="Genesis">Genesis (בראשית)</option>
+                <option value="Exodus">Exodus (שמות)</option>
+                <option value="Leviticus">Leviticus (ויקרא)</option>
+                <option value="Numbers">Numbers (במדבר)</option>
+                <option value="Deuteronomy">Deuteronomy (דברים)</option>
+            </select>
+    
+            <label for="chapter">Chapter:</label>
+            <input type="number" id="chapter" min="1" placeholder="Chapter">
+    
+            <label for="verse">Verse:</label>
+            <input type="number" id="verse" min="1" placeholder="Verse">
+            
+            <button onclick="loadVerse()">Load Specific Verse</button>
+        </div>
+    </div>
 
     <div class="highlight-key">
         <div><span class="highlight-noun">Yellow Highlight</span>: Noun</div>
         <div><span class="highlight-noun highlight-proper-noun">Yellow Highlight with Underline</span>: Proper Noun</div>
     </div>
-
+    
+    
+    <div id="loading" style="display:none">Loading...</div>
+    <div id="error" class="error" style="display:none"></div>
+    
+    <div class="reference-display" id="referenceDisplay"></div>
+    
+    <div id="verseContainer"></div>
+    
     <canvas id="properNounChart" width="800" height="400"></canvas>
+    
+
 
     <script>
 
@@ -845,31 +873,34 @@ loadLemmaData().then(() => {
         }
 
         function populateParshaDropdown() {
-            const parshaSelect = document.getElementById('parshaSelect');
-            for (let parsha in parshaData) {
-                let option = document.createElement('option');
-                option.value = parsha;
-                option.textContent = parsha;
-                parshaSelect.appendChild(option);
-            }
+        const parshaSelect = document.getElementById('parshaSelect');
+        parshaSelect.innerHTML = '<option value="">Select Parsha</option>'; // Reset options
+
+        for (let parsha in parshaData) {
+            let option = document.createElement('option');
+            option.value = parsha;
+            option.textContent = parsha;
+            parshaSelect.appendChild(option);
         }
+    }
 
-        function loadAliyot() {
-            const parshaSelect = document.getElementById('parshaSelect');
-            const aliyaSelect = document.getElementById('aliyaSelect');
-            aliyaSelect.innerHTML = '<option value="">Select Aliya</option>';
 
-            const selectedParsha = parshaSelect.value;
-            if (!selectedParsha) return;
+    function loadAliyot() {
+        const parshaSelect = document.getElementById('parshaSelect');
+        const aliyaSelect = document.getElementById('aliyaSelect');
+        aliyaSelect.innerHTML = '<option value="">Select Aliya</option>'; // Reset options
 
-            const aliyot = parshaData[selectedParsha];
-            for (let aliya in aliyot) {
-                let option = document.createElement('option');
-                option.value = aliyot[aliya];
-                option.textContent = aliya;
-                aliyaSelect.appendChild(option);
-            }
+        const selectedParsha = parshaSelect.value;
+        if (!selectedParsha) return;
+
+        const aliyot = parshaData[selectedParsha];
+        for (let aliya in aliyot) {
+            let option = document.createElement('option');
+            option.value = aliyot[aliya];
+            option.textContent = aliya;
+            aliyaSelect.appendChild(option);
         }
+    }
 
         async function loadAliyaRange() {
     const aliyaSelect = document.getElementById('aliyaSelect');
@@ -1012,11 +1043,11 @@ updateChart();
 
 async function loadVerse() {
     console.log("Loading specific verse...");
-    const bookSelect = document.getElementById('parshaSelect').value;
+    const bookSelect = document.getElementById('bookSelect').value; // Ensure correct dropdown is used
     const chapter = parseInt(document.getElementById('chapter').value);
     const verse = parseInt(document.getElementById('verse').value);
 
-    if (!bookSelect || !chapter || !verse) {
+    if (!bookSelect || isNaN(chapter) || isNaN(verse)) {
         showError("Select a book, chapter, and verse");
         return;
     }
@@ -1042,7 +1073,7 @@ async function loadVerse() {
     }
 
     const verseContainer = document.getElementById('verseContainer');
-    verseContainer.innerHTML = '';
+    verseContainer.innerHTML = ''; // Clear any previous verse
 
     const verseDiv = document.createElement('div');
     verseDiv.className = 'verse-container';
@@ -1058,63 +1089,63 @@ async function loadVerse() {
     const words = Array.from(verseNode.childNodes).filter(node => node.nodeName === "w");
 
     words.forEach(word => {
-    const wordSpan = document.createElement('span');
-    wordSpan.className = 'word-container';
-    wordSpan.textContent = word.textContent;
-    const lemma = word.getAttribute("lemma");
-    const morphCode = word.getAttribute("morph");
+        const wordSpan = document.createElement('span');
+        wordSpan.className = 'word-container';
+        wordSpan.textContent = word.textContent;
+        const lemma = word.getAttribute("lemma");
+        const morphCode = word.getAttribute("morph");
 
-    // Apply noun highlight only if 'N' is present without preceding 'V'
-    if (morphCode && /(^|[^V])N/.test(morphCode)) {
-        wordSpan.classList.add("highlight-noun");
+        // Apply noun highlight if 'N' is present without preceding 'V'
+        if (morphCode && /(^|[^V])N/.test(morphCode)) {
+            wordSpan.classList.add("highlight-noun");
 
-        // Additional underline if it is a proper noun (contains 'Np' and not preceded by 'V')
-        if (/(^|[^V])Np/.test(morphCode)) {
-            wordSpan.classList.add("highlight-proper-noun");
+            // Additional underline if it is a proper noun (contains 'Np' and not preceded by 'V')
+            if (/(^|[^V])Np/.test(morphCode)) {
+                wordSpan.classList.add("highlight-proper-noun");
 
-            // Extract numerical identifier from lemma, e.g., '85' from 'c/85'
-            const lemmaNumber = lemma.match(/\d+/);
-            if (lemmaNumber) {
-                const key = lemmaNumber[0]; // Use the number as the key
+                // Extract numerical identifier from lemma, e.g., '85' from 'c/85'
+                const lemmaNumber = lemma.match(/\d+/);
+                if (lemmaNumber) {
+                    const key = lemmaNumber[0]; // Use the number as the key
 
-                // Increment count for this lemma number
-                if (!properNounCounts[key]) {
-                    properNounCounts[key] = 0;
+                    // Increment count for this lemma number
+                    if (!properNounCounts[key]) {
+                        properNounCounts[key] = 0;
+                    }
+                    properNounCounts[key]++;
                 }
-                properNounCounts[key]++;
             }
         }
-    }
 
-    wordSpan.onclick = () => {
-        console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
+        wordSpan.onclick = () => {
+            console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
 
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <strong>Word:</strong> ${word.textContent}<br>
-            <strong>Lemma:</strong> ${lemma}<br>
-            <strong>Morphology Code:</strong> ${morphCode}<br>
-        `;
+            const wordInfo = verseDiv.querySelector('.word-info');
+            wordInfo.innerHTML = `
+                <strong>Word:</strong> ${word.textContent}<br>
+                <strong>Lemma:</strong> ${lemma}<br>
+                <strong>Morphology Code:</strong> ${morphCode}<br>
+            `;
 
-        // Check if morphology description is available and append button
-        if (morphCode && morphologyData[morphCode]) {
-            const expandButton = document.createElement('button');
-            expandButton.textContent = "Expand Morphology";
-            expandButton.onclick = () => expandMorphology(morphCode, expandButton);
-            wordInfo.appendChild(expandButton);
+            // Check if morphology description is available and append button
+            if (morphCode && morphologyData[morphCode]) {
+                const expandButton = document.createElement('button');
+                expandButton.textContent = "Expand Morphology";
+                expandButton.onclick = () => expandMorphology(morphCode, expandButton);
+                wordInfo.appendChild(expandButton);
 
-            console.log(`Button appended for Morphology Code: ${morphCode}`);
-        } else {
-            wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
-            console.warn(`No description found for morphology code: '${morphCode}'`);
-        }
-    };
+                console.log(`Button appended for Morphology Code: ${morphCode}`);
+            } else {
+                wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
+                console.warn(`No description found for morphology code: '${morphCode}'`);
+            }
+        };
 
-    hebrewText.appendChild(wordSpan);
-});
+        hebrewText.appendChild(wordSpan);
+    });
 
-// After counting, update the chart
-updateChart();
+    // After counting, update the chart
+    updateChart();
 
     verseDiv.appendChild(hebrewText);
 
