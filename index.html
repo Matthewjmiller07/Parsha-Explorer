@@ -1058,6 +1058,9 @@ async function loadVerse() {
         return;
     }
 
+    // Reset proper noun counts before processing the new verse
+    properNounCounts = {};
+
     let bookCode = bookSelect.slice(0, 3); // Default to 3 letters
     if (bookSelect === "Exodus" || bookSelect === "Deuteronomy") {
         bookCode = bookSelect.slice(0, 4); // Use 4 letters for Exodus and Deuteronomy
@@ -1144,9 +1147,6 @@ async function loadVerse() {
         hebrewText.appendChild(wordSpan);
     });
 
-    // After counting, update the chart
-    updateChart();
-
     verseDiv.appendChild(hebrewText);
 
     const wordInfo = document.createElement('div');
@@ -1155,6 +1155,9 @@ async function loadVerse() {
     verseDiv.appendChild(wordInfo);
 
     verseContainer.appendChild(verseDiv);
+
+    // Update the chart with the new proper noun counts
+    updateChart();
 }
 
 function expandMorphology(morphCode, button) {
