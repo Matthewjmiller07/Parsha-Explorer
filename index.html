@@ -206,7 +206,7 @@ const highlightMap = {
 async function loadMorphologyData() {
     console.log("Loading morphology data from public/Oshm.xml...");
     try {
-        const response = await fetch('/public/Oshm.xml');
+        const response = await fetch('http://localhost:8000/public/Oshm.xml');
         if (!response.ok) throw new Error("Failed to load morphology data");
         
         const text = await response.text();
@@ -237,7 +237,7 @@ loadMorphologyData().then(() => {
 async function loadLemmaData() {
     console.log("Loading lemma data from HebrewStrong.xml...");
     try {
-        const response = await fetch('/public/HebrewStrong.xml');
+        const response = await fetch('http://localhost:8000/public/HebrewStrong.xml');
         if (!response.ok) throw new Error("Failed to load lemma data");
 
         const text = await response.text();
