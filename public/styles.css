@@ -1,0 +1,27 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+#controls {
+    margin: 20px;
+}
+
+#display {
+    margin-top: 20px;
+    font-size: 1.2em;
+}
+
+.Hebrew {
+    color: #333;
+    cursor: pointer;
+}
+
+#popup {
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 4px;
+    box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+}
