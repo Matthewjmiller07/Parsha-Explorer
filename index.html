@@ -31,15 +31,33 @@
         }
     
         .word-info {
-            font-size: 14px;
-            color: #666;
-            margin-top: 15px;
-            padding: 10px;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            direction: ltr;
-            text-align: left;
-        }
+    font-size: 14px;
+    color: #666;
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    direction: ltr;
+    text-align: left;
+    max-height: 300px; /* Add max height to prevent overflow */
+    overflow-y: auto; /* Enable scrolling if content exceeds max height */
+}
+
+.word-info section {
+    margin-bottom: 10px;
+}
+
+.word-info .bdb-section, .word-info .morphology-section {
+    padding: 8px;
+    border-radius: 4px;
+    background-color: #e6f7ff;
+}
+
+.word-info .section-title {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
     
         .controls {
             margin-bottom: 20px;
@@ -1015,73 +1033,68 @@ loadLemmaData().then(() => {
         }
     }
 
-    wordSpan.onclick = () => {
-        console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `<strong>Word:</strong> ${word.textContent}<br><strong>Lemma:</strong> ${lemma}<br><strong>Morphology Code:</strong> ${morphCode}<br>`;
-        if (morphCode && morphologyData[morphCode]) {
-            const expandButton = document.createElement('button');
-            expandButton.textContent = "Expand Morphology";
-            expandButton.onclick = () => expandMorphology(morphCode, expandButton);
-            wordInfo.appendChild(expandButton);
-            console.log(`Button appended for Morphology Code: ${morphCode}`);
-        } else {
-            wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
-            console.warn(`No description found for morphology code: '${morphCode}'`);
-        }
-    };
+    wordSpan.onclick = async () => {
+    console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
+    const wordInfo = verseDiv.querySelector('.word-info');
+    wordInfo.innerHTML = `
+        <section>
+            <span class="section-title">Word:</span> ${word.textContent}
+        </section>
+        <section>
+            <span class="section-title">Lemma:</span> ${lemma}
+        </section>
+        <section>
+            <span class="section-title">Morphology Code:</span> ${morphCode}
+        </section>`;
 
-    const tooltip = document.createElement('div');
-    tooltip.className = 'tooltip';
-    wordSpan.appendChild(tooltip);
+    // Morphology Section
+    const morphologySection = document.createElement('section');
+    morphologySection.className = 'morphology-section';
+    morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
+    wordInfo.appendChild(morphologySection);
 
-    wordSpan.onmouseover = async () => {
-        const lemma = word.getAttribute("lemma");
-        console.log("Lemma attribute:", lemma);
+    // BDB Section
+    const bdbSection = document.createElement('section');
+    bdbSection.className = 'bdb-section';
+    bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
 
-        const lemmaNumber = lemma.match(/^(?:c\/|l\/)?(\d+)/);
-        console.log("Lemma number match:", lemmaNumber);
+    const lemmaNumber = lemma.match(/\d+/)?.[0];
+    if (lemmaNumber) {
+        const lemmaID = `H${lemmaNumber}`;
+        const lemmaInfo = lemmaData[lemmaID];
 
-        if (lemmaNumber) {
-            const lemmaID = lemmaNumber[1];
-            const lemmaInfo = lemmaData[`H${lemmaID}`];
+        if (lemmaInfo) {
+            try {
+                const response = await fetch('HebrewStrong.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "application/xml");
+                const entry = xmlDoc.querySelector(`entry[id="H${lemmaNumber}"]`);
 
-            if (lemmaInfo) {
-                try {
-                    const response = await fetch('HebrewStrong.xml');
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(text, "application/xml");
+                // Populate BDB Content
+                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
+                
+                const source = entry.querySelector("source")?.textContent.trim();
+                const meaning = entry.querySelector("meaning")?.textContent.trim();
+                const usage = entry.querySelector("usage")?.textContent.trim();
 
-                    const entry = xmlDoc.querySelector('entry[id="H' + lemmaID + '"]');
+                if (source) bdbSection.innerHTML += `<strong>Source:</strong> ${source}<br>`;
+                if (meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${meaning}<br>`;
+                if (usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${usage}`;
+                
+                wordInfo.appendChild(bdbSection);
 
-                    let tooltipContent = `${lemmaInfo.word}: ${lemmaInfo.definition}`;
-                    const source = entry.querySelector("source")?.textContent.trim();
-                    const meaning = entry.querySelector("meaning")?.textContent.trim();
-                    const usage = entry.querySelector("usage")?.textContent.trim();
-
-                    if (source) {
-                        tooltipContent += `<br>Source: ${source}`;
-                    }
-                    if (meaning) {
-                        tooltipContent += `<br>Meaning: ${meaning}`;
-                    }
-                    if (usage) {
-                        tooltipContent += `<br>Usage: ${usage}`;
-                    }
-
-                    tooltip.innerHTML = tooltipContent;
-                } catch (error) {
-                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
-                    tooltip.textContent = "Error loading lemma details.";
-                }
-            } else {
-                tooltip.textContent = "Lemma information not found.";
+            } catch (error) {
+                console.error("Error fetching or parsing HebrewStrong.xml:", error);
+                bdbSection.innerHTML += "Error loading BDB lemma details.";
             }
         } else {
-            tooltip.textContent = "Invalid lemma format.";
+            bdbSection.innerHTML += "No BDB data available for this lemma.";
         }
-    };
+    } else {
+        bdbSection.innerHTML += "Invalid lemma format.";
+    }
+};
 
     hebrewText.appendChild(wordSpan);
 });
@@ -1174,73 +1187,68 @@ async function loadVerse() {
         }
     }
 
-    wordSpan.onclick = () => {
-        console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `<strong>Word:</strong> ${word.textContent}<br><strong>Lemma:</strong> ${lemma}<br><strong>Morphology Code:</strong> ${morphCode}<br>`;
-        if (morphCode && morphologyData[morphCode]) {
-            const expandButton = document.createElement('button');
-            expandButton.textContent = "Expand Morphology";
-            expandButton.onclick = () => expandMorphology(morphCode, expandButton);
-            wordInfo.appendChild(expandButton);
-            console.log(`Button appended for Morphology Code: ${morphCode}`);
-        } else {
-            wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
-            console.warn(`No description found for morphology code: '${morphCode}'`);
-        }
-    };
+    wordSpan.onclick = async () => {
+    console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
+    const wordInfo = verseDiv.querySelector('.word-info');
+    wordInfo.innerHTML = `
+        <section>
+            <span class="section-title">Word:</span> ${word.textContent}
+        </section>
+        <section>
+            <span class="section-title">Lemma:</span> ${lemma}
+        </section>
+        <section>
+            <span class="section-title">Morphology Code:</span> ${morphCode}
+        </section>`;
 
-    const tooltip = document.createElement('div');
-    tooltip.className = 'tooltip';
-    wordSpan.appendChild(tooltip);
+    // Morphology Section
+    const morphologySection = document.createElement('section');
+    morphologySection.className = 'morphology-section';
+    morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
+    wordInfo.appendChild(morphologySection);
 
-    wordSpan.onmouseover = async () => {
-        const lemma = word.getAttribute("lemma");
-        console.log("Lemma attribute:", lemma);
+    // BDB Section
+    const bdbSection = document.createElement('section');
+    bdbSection.className = 'bdb-section';
+    bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
 
-        const lemmaNumber = lemma.match(/^([a-z]\/)?(\d+)\s*([a-z])?$/);
-        console.log("Lemma number match:", lemmaNumber);
+    const lemmaNumber = lemma.match(/\d+/)?.[0];
+    if (lemmaNumber) {
+        const lemmaID = `H${lemmaNumber}`;
+        const lemmaInfo = lemmaData[lemmaID];
 
-        if (lemmaNumber) {
-            const lemmaID = lemmaNumber[1];
-            const lemmaInfo = lemmaData[`H${lemmaID}`];
+        if (lemmaInfo) {
+            try {
+                const response = await fetch('HebrewStrong.xml');
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "application/xml");
+                const entry = xmlDoc.querySelector(`entry[id="H${lemmaNumber}"]`);
 
-            if (lemmaInfo) {
-                try {
-                    const response = await fetch('HebrewStrong.xml');
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(text, "application/xml");
+                // Populate BDB Content
+                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
+                
+                const source = entry.querySelector("source")?.textContent.trim();
+                const meaning = entry.querySelector("meaning")?.textContent.trim();
+                const usage = entry.querySelector("usage")?.textContent.trim();
 
-                    const entry = xmlDoc.querySelector('entry[id="H' + lemmaID + '"]');
+                if (source) bdbSection.innerHTML += `<strong>Source:</strong> ${source}<br>`;
+                if (meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${meaning}<br>`;
+                if (usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${usage}`;
+                
+                wordInfo.appendChild(bdbSection);
 
-                    let tooltipContent = `${lemmaInfo.word}: ${lemmaInfo.definition}`;
-                    const source = entry.querySelector("source")?.textContent.trim();
-                    const meaning = entry.querySelector("meaning")?.textContent.trim();
-                    const usage = entry.querySelector("usage")?.textContent.trim();
-
-                    if (source) {
-                        tooltipContent += `<br>Source: ${source}`;
-                    }
-                    if (meaning) {
-                        tooltipContent += `<br>Meaning: ${meaning}`;
-                    }
-                    if (usage) {
-                        tooltipContent += `<br>Usage: ${usage}`;
-                    }
-
-                    tooltip.innerHTML = tooltipContent;
-                } catch (error) {
-                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
-                    tooltip.textContent = "Error loading lemma details.";
-                }
-            } else {
-                tooltip.textContent = "Lemma information not found.";
+            } catch (error) {
+                console.error("Error fetching or parsing HebrewStrong.xml:", error);
+                bdbSection.innerHTML += "Error loading BDB lemma details.";
             }
         } else {
-            tooltip.textContent = "Invalid lemma format.";
+            bdbSection.innerHTML += "No BDB data available for this lemma.";
         }
-    };
+    } else {
+        bdbSection.innerHTML += "Invalid lemma format.";
+    }
+};
 
     hebrewText.appendChild(wordSpan);
 });
