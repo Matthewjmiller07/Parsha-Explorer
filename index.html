@@ -264,14 +264,11 @@
                 <option value="Numbers">Numbers (במדבר)</option>
                 <option value="Deuteronomy">Deuteronomy (דברים)</option>
             </select>
-    
-            <label for="chapter">Chapter:</label>
-            <input type="number" id="chapter" min="1" placeholder="Chapter">
-    
-            <label for="verse">Verse:</label>
-            <input type="number" id="verse" min="1" placeholder="Verse">
-            
-            <button onclick="loadVerse()">Load Specific Verse</button>
+        
+            <label for="verseRange">Verse/Range:</label>
+            <input type="text" id="verseRange" placeholder="e.g., 1:1 or 2:1-3:4">
+        
+            <button onclick="loadVerse()">Load Selection</button>
         </div>
     </div>
 
@@ -385,7 +382,26 @@ async function loadLemmaData() {
 loadLemmaData().then(() => {
     console.log("Lemma data is ready for display functionality.");
 });
-        const parshaData = {
+const books = {
+        "Genesis": {
+            "chapters": [31, 25, 24, 26, 32, 22, 24, 22, 29, 32, 32, 20, 18, 24, 21, 16, 27, 33, 38, 18, 34, 24, 20, 67, 34, 35, 46, 22, 35, 43, 55, 32, 20, 31, 29, 43, 36, 30, 23, 23, 57, 38, 34, 34, 28, 34, 31, 22, 33, 26] // 50 chapters
+        },
+        "Exodus": {
+            "chapters": [22, 25, 22, 31, 23, 30, 25, 32, 35, 29, 10, 51, 22, 31, 27, 36, 16, 27, 25, 26, 36, 31, 33, 18, 40, 37, 21, 43, 46, 38, 18, 35, 23, 35, 35, 38, 29, 31, 43, 38] // 40 chapters
+        },
+        "Leviticus": {
+            "chapters": [17, 16, 17, 35, 19, 30, 38, 36, 24, 20, 47, 8, 59, 57, 33, 34, 16, 30, 37, 27, 24, 33, 44, 23, 55, 46, 34] // 27 chapters
+        },
+        "Numbers": {
+            "chapters": [54, 34, 51, 49, 31, 27, 89, 26, 23, 36, 35, 16, 33, 45, 41, 50, 13, 32, 22, 29, 35, 41, 30, 25, 18, 65, 23, 31, 40, 16, 54, 42, 56, 29, 34, 13] // 36 chapters
+        },
+        "Deuteronomy": {
+            "chapters": [46, 37, 29, 49, 33, 25, 26, 20, 29, 22, 32, 32, 18, 29, 23, 22, 20, 22, 21, 20, 23, 30, 25, 22, 19, 19, 26, 68, 29, 20, 30, 52, 29, 12] // 34 chapters
+        }
+        // Add more books as needed
+    };        
+
+const parshaData = {
     "Bereshit": {
         "Whole Parsha": "Genesis 1:1-6:8",
         "Aliya 1": "Genesis 1:1-2:3",
@@ -1173,15 +1189,15 @@ async function loadAliyaRange(startRef = null, endRef = null) {
 }
 
 async function loadVerse() {
-      // Reset proper noun counts for new data load
+    // Reset proper noun counts for new data load
     properNounCounts = {};
-    console.log("Loading specific verse...");
-    const bookSelect = document.getElementById('bookSelect').value; // Ensure correct dropdown is used
-    const chapter = parseInt(document.getElementById('chapter').value);
-    const verse = parseInt(document.getElementById('verse').value);
+    console.log("Loading specified verse or range...");
 
-    if (!bookSelect || isNaN(chapter) || isNaN(verse)) {
-        showError("Select a book, chapter, and verse");
+    const bookSelect = document.getElementById('bookSelect').value;
+    const rangeInput = document.getElementById('verseRange').value.trim();
+
+    if (!bookSelect) {
+        showError("Select a book.");
         return;
     }
 
@@ -1191,122 +1207,147 @@ async function loadVerse() {
         return;
     }
 
-    // Reset proper noun counts before processing the new verse
-    properNounCounts = {};
-
-    let bookCode = bookSelect.slice(0, 3); // Default to 3 letters
+    let bookCode = bookSelect.slice(0, 3);
     if (bookSelect === "Exodus" || bookSelect === "Deuteronomy") {
-        bookCode = bookSelect.slice(0, 4); // Use 4 letters for Exodus and Deuteronomy
-    }
-
-    const osisID = `${bookCode}.${chapter}.${verse}`;
-    const verseNode = xmlData.querySelector(`verse[osisID="${osisID}"]`);
-
-    if (!verseNode) {
-        showError(`Verse ${osisID} not found.`);
-        console.log(xmlData); // Log the XML data to the console for debugging
-        return;
+        bookCode = bookSelect.slice(0, 4);
     }
 
     const verseContainer = document.getElementById('verseContainer');
-    verseContainer.innerHTML = ''; // Clear any previous verse
+    verseContainer.innerHTML = ''; // Clear any previous verses
 
-    const verseDiv = document.createElement('div');
-    verseDiv.className = 'verse-container';
+    let startChapter, startVerse, endChapter, endVerse;
 
-    const verseLabel = document.createElement('div');
-    verseLabel.className = 'verse-label';
-    verseLabel.textContent = `${bookSelect} ${chapter}:${verse}`;
-    verseDiv.appendChild(verseLabel);
-
-    const hebrewText = document.createElement('div');
-    hebrewText.className = 'hebrew-text';
-
-    const words = Array.from(verseNode.childNodes).filter(node => node.nodeName === "w");
-
-    // Adjusted code within verse loading function to apply 'construct-noun' class directly
-    words.forEach(word => {
-    const wordSpan = document.createElement('span');
-    wordSpan.className = 'word-container';
-    wordSpan.textContent = word.textContent;
-
-    // Extract lemma and morphology information
-    const lemma = word.getAttribute("lemma");
-    const morphCode = word.getAttribute("morph");
-
-    // Attempt to extract lemma number from lemma attribute (e.g., "H1234" -> "1234")
-    const lemmaNumberMatch = lemma ? lemma.match(/\d+/) : null;
-    const lemmaNumber = lemmaNumberMatch ? lemmaNumberMatch[0] : null;
-
-    // Set data-lemma attribute for later filtering if lemma number is valid
-    if (lemmaNumber) {
-        wordSpan.setAttribute("data-lemma", lemmaNumber);
-        
-        // Count proper nouns for the chart based on morphology code
-        if (/(^|[^V])Np/.test(morphCode)) {
-            wordSpan.classList.add("highlight-proper-noun");
-            properNounCounts[lemmaNumber] = (properNounCounts[lemmaNumber] || 0) + 1;
-        }
+    if (!rangeInput) {
+        // No range specified; load entire book using `books` data
+        startChapter = 1;
+        endChapter = books[bookSelect].chapters.length;
+        startVerse = 1;
+        endVerse = books[bookSelect].chapters[endChapter - 1];
+    } else if (rangeInput.includes("-")) {
+        // Range of verses specified (e.g., "2:1-3:4")
+        const [start, end] = rangeInput.split("-");
+        [startChapter, startVerse] = start.split(":").map(Number);
+        [endChapter, endVerse] = end.split(":").map(Number);
+    } else {
+        // Single verse specified (e.g., "1:1")
+        [startChapter, startVerse] = rangeInput.split(":").map(Number);
+        endChapter = startChapter;
+        endVerse = startVerse;
     }
 
-    // Apply highlights based on morphology codes
-    if (morphCode && /(^|[^V])N/.test(morphCode)) {
-        wordSpan.classList.add("highlight-noun");
-    }
-    if (morphologyData[morphCode]?.toLowerCase().includes("construct") && 
-        morphologyData[morphCode]?.toLowerCase().includes("noun") && 
-        !morphologyData[morphCode]?.toLowerCase().includes("suffix")) {
-        wordSpan.classList.add('construct-noun'); // Apply construct noun styling
-    }
+    for (let chapter = startChapter; chapter <= endChapter; chapter++) {
+        const chapterNode = xmlData.querySelector(`chapter[osisID="${bookCode}.${chapter}"]`);
+        if (!chapterNode) continue;
 
-    // Word click event to display morphology and BDB entry details
-    wordSpan.onclick = async () => {
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <section><span class="section-title">Word:</span> ${word.textContent}</section>
-            <section><span class="section-title">Lemma:</span> ${lemma}</section>
-            <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>`;
-        
-        // Add morphology description if available
-        const morphologySection = document.createElement('section');
-        morphologySection.className = 'morphology-section';
-        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
-        wordInfo.appendChild(morphologySection);
+        const maxVerse = (chapter === endChapter) ? endVerse : books[bookSelect].chapters[chapter - 1];
+        const minVerse = (chapter === startChapter) ? startVerse : 1;
 
-        // Display BDB entry if lemma number is valid
-        if (lemmaNumber) {
-            const bdbSection = document.createElement('section');
-            bdbSection.className = 'bdb-section';
-            bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
+        Array.from(chapterNode.querySelectorAll("verse")).forEach(verseNode => {
+            const verseNumber = parseInt(verseNode.getAttribute("osisID").split(".")[2]);
 
-            const lemmaID = `H${lemmaNumber}`;
-            const lemmaInfo = lemmaData[lemmaID];
+            if (verseNumber >= minVerse && verseNumber <= maxVerse) {
+                const verseDiv = document.createElement('div');
+                verseDiv.className = 'verse-container';
 
-            if (lemmaInfo) {
-                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
-                const entry = (await fetchBDBEntry(lemmaNumber)) || {};
-                if (entry.source) bdbSection.innerHTML += `<strong>Source:</strong> ${entry.source}<br>`;
-                if (entry.meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${entry.meaning}<br>`;
-                if (entry.usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${entry.usage}`;
-            } else {
-                bdbSection.innerHTML += "No BDB data available for this lemma.";
+                const verseLabel = document.createElement('div');
+                verseLabel.className = 'verse-label';
+                verseLabel.textContent = `${bookCode} ${chapter}:${verseNumber}`;
+                verseDiv.appendChild(verseLabel);
+
+                const hebrewText = document.createElement('div');
+                hebrewText.className = 'hebrew-text';
+
+                Array.from(verseNode.childNodes).filter(node => node.nodeName === "w").forEach(word => {
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'word-container';
+                    wordSpan.textContent = word.textContent;
+                    const lemma = word.getAttribute("lemma");
+                    const morphCode = word.getAttribute("morph");
+
+                    // Apply highlights and add to counts if it's a proper noun
+                    if (morphCode && /(^|[^V])N/.test(morphCode)) {
+                        wordSpan.classList.add("highlight-noun");
+                        if (/(^|[^V])Np/.test(morphCode)) {
+                            wordSpan.classList.add("highlight-proper-noun");
+                            const lemmaNumber = lemma.match(/\d+/);
+                            if (lemmaNumber) {
+                                const key = lemmaNumber[0];
+                                properNounCounts[key] = (properNounCounts[key] || 0) + 1;
+                                wordSpan.setAttribute("data-lemma", key); // Set data-lemma for filtering
+                            }
+                        }
+                    }
+
+                    // Check if the word is a construct noun
+                    if (morphologyData[morphCode]?.toLowerCase().includes("construct") && 
+                        morphologyData[morphCode]?.toLowerCase().includes("noun") && 
+                        !morphologyData[morphCode]?.toLowerCase().includes("suffix")) {
+                        wordSpan.classList.add('construct-noun');
+                    }
+
+                    wordSpan.onclick = async () => {
+                        const wordInfo = verseDiv.querySelector('.word-info');
+                        wordInfo.innerHTML = `
+                            <section><span class="section-title">Word:</span> ${word.textContent}</section>
+                            <section><span class="section-title">Lemma:</span> ${lemma}</section>
+                            <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>`;
+
+                        const morphologySection = document.createElement('section');
+                        morphologySection.className = 'morphology-section';
+                        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
+                        wordInfo.appendChild(morphologySection);
+
+                        const bdbSection = document.createElement('section');
+                        bdbSection.className = 'bdb-section';
+                        bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
+
+                        const lemmaNumber = lemma.match(/\d+/)?.[0];
+                        if (lemmaNumber) {
+                            const lemmaID = `H${lemmaNumber}`;
+                            const lemmaInfo = lemmaData[lemmaID];
+                            if (lemmaInfo) {
+                                try {
+                                    const response = await fetch('HebrewStrong.xml');
+                                    const text = await response.text();
+                                    const parser = new DOMParser();
+                                    const xmlDoc = parser.parseFromString(text, "application/xml");
+                                    const entry = xmlDoc.querySelector(`entry[id="H${lemmaNumber}"]`);
+
+                                    bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
+                                    const source = entry.querySelector("source")?.textContent.trim();
+                                    const meaning = entry.querySelector("meaning")?.textContent.trim();
+                                    const usage = entry.querySelector("usage")?.textContent.trim();
+
+                                    if (source) bdbSection.innerHTML += `<strong>Source:</strong> ${source}<br>`;
+                                    if (meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${meaning}<br>`;
+                                    if (usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${usage}`;
+                                    wordInfo.appendChild(bdbSection);
+                                } catch (error) {
+                                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
+                                    bdbSection.innerHTML += "Error loading BDB lemma details.";
+                                }
+                            } else {
+                                bdbSection.innerHTML += "No BDB data available for this lemma.";
+                            }
+                        } else {
+                            bdbSection.innerHTML += "Invalid lemma format.";
+                        }
+                    };
+
+                    hebrewText.appendChild(wordSpan);
+                });
+
+                verseDiv.appendChild(hebrewText);
+
+                const wordInfo = document.createElement('div');
+                wordInfo.className = 'word-info';
+                wordInfo.textContent = 'Click a word to see details';
+                verseDiv.appendChild(wordInfo);
+
+                verseContainer.appendChild(verseDiv);
             }
-            wordInfo.appendChild(bdbSection);
-        }
-    };
-
-    // Append the wordSpan to the main hebrew text container
-    hebrewText.appendChild(wordSpan);
-});
-
-    verseDiv.appendChild(hebrewText);
-
-    const wordInfo = document.createElement('div');
-    wordInfo.className = 'word-info';
-    wordInfo.textContent = 'Click a word to see details';
-    verseDiv.appendChild(wordInfo);
-
-    verseContainer.appendChild(verseDiv);
+        });
+    }
 
     // Update the chart with the new proper noun counts
     updateChart();
@@ -1440,81 +1481,6 @@ function filterVersesByLemma(selectedLemma) {
     }
 }
 
-// Make sure each word has `data-lemma` set to its lemma ID in loadAliyaRange
-words.forEach(word => {
-    const wordSpan = document.createElement('span');
-    wordSpan.className = 'word-container';
-    wordSpan.textContent = word.textContent;
-
-    // Extract lemma and morphology information
-    const lemma = word.getAttribute("lemma");
-    const morphCode = word.getAttribute("morph");
-
-    // Attempt to extract lemma number from lemma attribute (e.g., "H1234" -> "1234")
-    const lemmaNumberMatch = lemma ? lemma.match(/\d+/) : null;
-    const lemmaNumber = lemmaNumberMatch ? lemmaNumberMatch[0] : null;
-
-    // Set data-lemma attribute for later filtering if lemma number is valid
-    if (lemmaNumber) {
-        wordSpan.setAttribute("data-lemma", lemmaNumber);
-        
-        // Count proper nouns for the chart based on morphology code
-        if (/(^|[^V])Np/.test(morphCode)) {
-            wordSpan.classList.add("highlight-proper-noun");
-            properNounCounts[lemmaNumber] = (properNounCounts[lemmaNumber] || 0) + 1;
-        }
-    }
-
-    // Apply highlights based on morphology codes
-    if (morphCode && /(^|[^V])N/.test(morphCode)) {
-        wordSpan.classList.add("highlight-noun");
-    }
-    if (morphologyData[morphCode]?.toLowerCase().includes("construct") && 
-        morphologyData[morphCode]?.toLowerCase().includes("noun") && 
-        !morphologyData[morphCode]?.toLowerCase().includes("suffix")) {
-        wordSpan.classList.add('construct-noun'); // Apply construct noun styling
-    }
-
-    // Word click event to display morphology and BDB entry details
-    wordSpan.onclick = async () => {
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <section><span class="section-title">Word:</span> ${word.textContent}</section>
-            <section><span class="section-title">Lemma:</span> ${lemma}</section>
-            <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>`;
-        
-        // Add morphology description if available
-        const morphologySection = document.createElement('section');
-        morphologySection.className = 'morphology-section';
-        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
-        wordInfo.appendChild(morphologySection);
-
-        // Display BDB entry if lemma number is valid
-        if (lemmaNumber) {
-            const bdbSection = document.createElement('section');
-            bdbSection.className = 'bdb-section';
-            bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
-
-            const lemmaID = `H${lemmaNumber}`;
-            const lemmaInfo = lemmaData[lemmaID];
-
-            if (lemmaInfo) {
-                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
-                const entry = (await fetchBDBEntry(lemmaNumber)) || {};
-                if (entry.source) bdbSection.innerHTML += `<strong>Source:</strong> ${entry.source}<br>`;
-                if (entry.meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${entry.meaning}<br>`;
-                if (entry.usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${entry.usage}`;
-            } else {
-                bdbSection.innerHTML += "No BDB data available for this lemma.";
-            }
-            wordInfo.appendChild(bdbSection);
-        }
-    };
-
-    // Append the wordSpan to the main hebrew text container
-    hebrewText.appendChild(wordSpan);
-});
-
 function filterByType(typeClass) {
     const verseContainer = document.getElementById('verseContainer');
     const verses = verseContainer.querySelectorAll('.verse-container');
@@ -1575,70 +1541,6 @@ async function fetchBDBEntry(lemmaNumber) {
     }
 }
 
-words.forEach(word => {
-    const wordSpan = document.createElement('span');
-    wordSpan.className = 'word-container';
-    wordSpan.textContent = word.textContent;
-
-    const lemma = word.getAttribute("lemma");
-    const morphCode = word.getAttribute("morph");
-
-    const lemmaNumberMatch = lemma ? lemma.match(/\d+/) : null;
-    const lemmaNumber = lemmaNumberMatch ? lemmaNumberMatch[0] : null;
-
-    if (lemmaNumber) {
-        wordSpan.setAttribute("data-lemma", lemmaNumber);
-
-        if (/(^|[^V])Np/.test(morphCode)) {
-            wordSpan.classList.add("highlight-proper-noun");
-            properNounCounts[lemmaNumber] = (properNounCounts[lemmaNumber] || 0) + 1;
-        }
-    }
-
-    if (morphCode && /(^|[^V])N/.test(morphCode)) {
-        wordSpan.classList.add("highlight-noun");
-    }
-    if (morphologyData[morphCode]?.toLowerCase().includes("construct") &&
-        morphologyData[morphCode]?.toLowerCase().includes("noun") &&
-        !morphologyData[morphCode]?.toLowerCase().includes("suffix")) {
-        wordSpan.classList.add('construct-noun');
-    }
-
-    wordSpan.onclick = async () => {
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <section><span class="section-title">Word:</span> ${word.textContent}</section>
-            <section><span class="section-title">Lemma:</span> ${lemma}</section>
-            <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>`;
-
-        const morphologySection = document.createElement('section');
-        morphologySection.className = 'morphology-section';
-        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
-        wordInfo.appendChild(morphologySection);
-
-        if (lemmaNumber) {
-            const bdbSection = document.createElement('section');
-            bdbSection.className = 'bdb-section';
-            bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
-
-            const lemmaID = `H${lemmaNumber}`;
-            const lemmaInfo = lemmaData[lemmaID];
-
-            if (lemmaInfo) {
-                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
-                const entry = await fetchBDBEntry(lemmaNumber) || {};
-                if (entry.source) bdbSection.innerHTML += `<strong>Source:</strong> ${entry.source}<br>`;
-                if (entry.meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${entry.meaning}<br>`;
-                if (entry.usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${entry.usage}`;
-            } else {
-                bdbSection.innerHTML += "No BDB data available for this lemma.";
-            }
-            wordInfo.appendChild(bdbSection);
-        }
-    };
-
-    hebrewText.appendChild(wordSpan);
-});
     </script>
 </body>
 </html>
