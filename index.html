@@ -254,10 +254,18 @@
     </div>
 
     <div class="highlight-key">
-        <div><span class="highlight-noun">Yellow Highlight</span>: Noun</div>
-        <div><span class="highlight-noun highlight-proper-noun">Black Outlined Box</span>: Proper Noun</div>
-        <div><span class="construct-noun">Dashed Border</span>: Construct Noun</div>
+        <div onclick="filterByType('highlight-noun')">
+            <span class="highlight-noun" style="cursor: pointer;">Yellow Highlight</span>: Noun
+        </div>
+        <div onclick="filterByType('highlight-proper-noun')">
+            <span class="highlight-proper-noun" style="cursor: pointer; border: 1px solid black;">Black Outlined Box</span>: Proper Noun
+        </div>
+        <div onclick="filterByType('construct-noun')">
+            <span class="construct-noun" style="cursor: pointer; border: 1px dashed;">Dashed Border</span>: Construct Noun
+        </div>
     </div>
+
+    <button onclick="showAllWords()">Show All Words</button>
     
     
     <div id="loading" style="display:none">Loading...</div>
@@ -1049,9 +1057,12 @@ words.forEach(word => {
     }
 
     // Check if morphology description includes "construct" and mark as construct noun
-    if (morphologyData[morphCode] && morphologyData[morphCode].toLowerCase().includes("construct")) {
-        wordSpan.classList.add('construct-noun'); // Apply construct noun styling automatically
-    }
+    if (morphologyData[morphCode] && 
+    morphologyData[morphCode].toLowerCase().includes("construct") && 
+    morphologyData[morphCode].toLowerCase().includes("noun") && 
+    !morphologyData[morphCode].toLowerCase().includes("suffix")) {
+    wordSpan.classList.add('construct-noun'); // Apply construct noun styling automatically
+}
 
     wordSpan.onclick = async () => {
         console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
@@ -1210,9 +1221,12 @@ words.forEach(word => {
     }
 
     // Check if morphology description includes "construct" and mark as construct noun
-    if (morphologyData[morphCode] && morphologyData[morphCode].toLowerCase().includes("construct")) {
-        wordSpan.classList.add('construct-noun'); // Apply construct noun styling automatically
-    }
+    if (morphologyData[morphCode] && 
+    morphologyData[morphCode].toLowerCase().includes("construct") && 
+    morphologyData[morphCode].toLowerCase().includes("noun") && 
+    !morphologyData[morphCode].toLowerCase().includes("suffix")) {
+    wordSpan.classList.add('construct-noun'); // Apply construct noun styling automatically
+}
 
     wordSpan.onclick = async () => {
         console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
@@ -1385,6 +1399,28 @@ window.onload = async function() {
                 }
             }
         }
+    });
+}
+
+function filterByType(typeClass) {
+    const verseContainer = document.getElementById('verseContainer');
+    const verses = verseContainer.querySelectorAll('.verse-container');
+
+    verses.forEach(verse => {
+        // Check if the verse contains any words with the selected type
+        const hasType = Array.from(verse.querySelectorAll('.word-container')).some(wordSpan => 
+            wordSpan.classList.contains(typeClass)
+        );
+
+        // Show the entire verse if it contains a word of the selected type, otherwise hide it
+        verse.style.display = hasType ? 'block' : 'none';
+    });
+}
+
+function showAllWords() {
+    const verseContainer = document.getElementById('verseContainer');
+    verseContainer.querySelectorAll('.verse-container').forEach(verse => {
+        verse.style.display = 'block'; // Show all verses
     });
 }
     </script>
