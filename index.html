@@ -67,16 +67,25 @@
         }
     
         .controls-section {
-            background-color: #e9f5ff;
-            border: 1px solid #b3d8ff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: flex-start;
-        }
+    background-color: #e9f5ff;
+    border: 1px solid #b3d8ff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 10px; /* Add space above slider */
+}
+
     
         select, input, button {
             padding: 8px;
@@ -211,26 +220,39 @@
 .word-container:hover .tooltip { 
     display: block;
 }
+
+.slider-container {
+            margin-bottom: 20px;
+        }
+        input[type=range] {
+            width: 100%;
+            max-width: 500px;
+        }
     </style>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js library -->
 
 </head>
 <body>
     <div class="controls">
-        <!-- Parsha and Aliya Selection Section -->
         <div class="controls-section">
             <label for="parshaSelect">Parsha:</label>
             <select id="parshaSelect" onchange="loadAliyot()">
                 <option value="">Select Parsha</option>
-                <!-- Dynamically populated parsha names will go here -->
             </select>
-    
+            
+            <!-- Slider for Parsha selection -->
+            <div class="slider-wrapper">
+                <label for="parshaSlider">Slide to Select:</label>
+                <input type="range" id="parshaSlider" min="0" max="53" value="0" oninput="updateParshaFromSlider()">
+                <span id="sliderValue">Bereshit</span> <!-- Display selected Parsha name -->
+            </div>
+            
             <label for="aliyaSelect">Aliya:</label>
             <select id="aliyaSelect" onchange="loadAliyaRange()">
                 <option value="">Select Aliya</option>
             </select>
         </div>
-    
+    </div>
         <!-- Book, Chapter, and Verse Selection Section -->
         <div class="controls-section">
             <label for="bookSelect">Book:</label>
@@ -285,6 +307,7 @@
 let morphologyData = {};
 let properNounCounts = {}; // Stores counts of proper nouns across parshas
 let lemmaData = {};
+let currentAliya = null;
 
 const highlightMap = {
     "HN": "highlight-hn",
@@ -324,6 +347,7 @@ async function loadMorphologyData() {
 loadMorphologyData().then(() => {
     console.log("Morphology data is ready for expansion functionality.");
 });
+
 
 async function loadLemmaData() {
     console.log("Loading lemma data from HebrewStrong.xml...");
@@ -904,6 +928,10 @@ loadLemmaData().then(() => {
     },
         };
 
+        const parshaNames = Object.keys(parshaData); 
+        let selectedParsha = parshaNames[0]; // Track the currently selected Parsha
+
+
         const bookMap = {
             "Genesis": "Gen.xml",
             "Exodus": "Exod.xml", 
@@ -949,42 +977,64 @@ loadLemmaData().then(() => {
 
 
     function loadAliyot() {
-        const parshaSelect = document.getElementById('parshaSelect');
-        const aliyaSelect = document.getElementById('aliyaSelect');
-        aliyaSelect.innerHTML = '<option value="">Select Aliya</option>'; // Reset options
+    const parshaSelect = document.getElementById('parshaSelect');
+    const aliyaSelect = document.getElementById('aliyaSelect');
 
-        const selectedParsha = parshaSelect.value;
-        if (!selectedParsha) return;
+    aliyaSelect.innerHTML = '<option value="">Select Aliya</option>'; // Reset options
 
-        const aliyot = parshaData[selectedParsha];
-        for (let aliya in aliyot) {
-            let option = document.createElement('option');
-            option.value = aliyot[aliya];
-            option.textContent = aliya;
-            aliyaSelect.appendChild(option);
-        }
+    const selectedParsha = parshaSelect.value;
+    if (!selectedParsha) return;
+
+    const aliyot = parshaData[selectedParsha];
+    for (let aliya in aliyot) {
+        let option = document.createElement('option');
+        option.value = aliyot[aliya];
+        option.textContent = aliya;
+        aliyaSelect.appendChild(option);
     }
 
-        async function loadAliyaRange() {
+    // Check if the currentAliya exists in the new Parsha's options
+    if (currentAliya && Array.from(aliyaSelect.options).some(option => option.value === currentAliya)) {
+        // Restore the previously selected Aliya if it still exists
+        aliyaSelect.value = currentAliya;
+        // We do not call loadAliyaRangeFromAliya() here to avoid unnecessary reload
+    } else {
+        // Otherwise, load the entire Parsha and reset currentAliya
+        currentAliya = null;
+        const [startRef, endRef] = aliyot["Whole Parsha"].split("-");
+        loadAliyaRange(startRef.trim(), endRef.trim());
+    }
+}
+
+
+function loadAliyaRangeFromAliya() {
+    const aliyaSelect = document.getElementById('aliyaSelect');
+    currentAliya = aliyaSelect.value; // Update the currently selected Aliya
+    if (currentAliya) {
+        const [startRef, endRef] = currentAliya.split("-").map(ref => ref.trim());
+        loadAliyaRange(startRef, endRef);
+    }
+}
+
+async function loadAliyaRange(startRef = null, endRef = null) {
+    properNounCounts = {};
     const aliyaSelect = document.getElementById('aliyaSelect');
     const aliyaRange = aliyaSelect.value;
 
-    if (!aliyaRange) {
-        showError("Please select a valid Aliya.");
-        return;
+    // If specific start and end references are provided, use them directly
+    // Otherwise, use the selected Aliya's range
+    if (!startRef || !endRef) {
+        if (!aliyaRange) {
+            showError("Please select a valid Aliya.");
+            return;
+        }
+
+        [startRef, endRef] = aliyaRange.split("-").map(ref => ref.trim());
     }
 
-    const [fullStart, fullEnd] = aliyaRange.split("-");
-    const [startBook, startRef] = fullStart.trim().split(" ");
-    const [startChapter, startVerse] = startRef.split(":").map(Number);
-
-    let endChapter, endVerse;
-    if (fullEnd.includes(":")) {
-        [endChapter, endVerse] = fullEnd.trim().split(":").map(Number);
-    } else {
-        endChapter = startChapter;
-        endVerse = parseInt(fullEnd.trim());
-    }
+    const [startBook, startRefPoint] = startRef.split(" ");
+    const [startChapter, startVerse] = startRefPoint.split(":").map(Number);
+    const [endChapter, endVerse] = endRef.includes(":") ? endRef.split(":").map(Number) : [startChapter, parseInt(endRef.trim())];
 
     const xmlData = await fetchBookData(startBook);
     if (!xmlData) {
@@ -993,19 +1043,19 @@ loadLemmaData().then(() => {
     }
 
     const verseContainer = document.getElementById('verseContainer');
-    verseContainer.innerHTML = '';
+    verseContainer.innerHTML = ''; // Clear previous verses
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
-        let bookCode = startBook.slice(0, 3); // Default to 3 letters
+        let bookCode = startBook.slice(0, 3);
         if (startBook === "Exodus" || startBook === "Deuteronomy") {
-            bookCode = startBook.slice(0, 4); // Use 4 letters for Exodus and Deuteronomy
+            bookCode = startBook.slice(0, 4);
         }
 
-        const chapterOsisID = `${bookCode}.${chapter}`; 
+        const chapterOsisID = `${bookCode}.${chapter}`;
         const chapterNode = xmlData.querySelector(`chapter[osisID="${chapterOsisID}"]`);
 
         if (!chapterNode) {
-            console.warn(`Chapter not found: ${chapterOsisID}`); 
+            console.warn(`Chapter not found: ${chapterOsisID}`);
             continue;
         }
 
@@ -1029,109 +1079,99 @@ loadLemmaData().then(() => {
                 const hebrewText = document.createElement('div');
                 hebrewText.className = 'hebrew-text';
 
-                const words = Array.from(verseNode.childNodes)
-                    .filter(node => node.nodeName === "w"); 
+                const words = Array.from(verseNode.childNodes).filter(node => node.nodeName === "w");
 
-                    // Adjusted code within verse loading function to apply 'construct-noun' class directly
-words.forEach(word => {
-    const wordSpan = document.createElement('span');
-    wordSpan.className = 'word-container';
-    wordSpan.textContent = word.textContent;
-    const lemma = word.getAttribute("lemma");
-    const morphCode = word.getAttribute("morph");
+                words.forEach(word => {
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'word-container';
+                    wordSpan.textContent = word.textContent;
+                    const lemma = word.getAttribute("lemma");
+                    const morphCode = word.getAttribute("morph");
 
-    // Apply noun highlight if 'N' is present without preceding 'V'
-    if (morphCode && /(^|[^V])N/.test(morphCode)) {
-        wordSpan.classList.add("highlight-noun");
-        if (/(^|[^V])Np/.test(morphCode)) {
-            wordSpan.classList.add("highlight-proper-noun");
-            const lemmaNumber = lemma.match(/\d+/);
-            if (lemmaNumber) {
-                const key = lemmaNumber[0];
-                if (!properNounCounts[key]) {
-                    properNounCounts[key] = 0;
-                }
-                properNounCounts[key]++;
-            }
-        }
-    }
+                    // Apply noun highlight if 'N' is present without preceding 'V'
+                    if (morphCode && /(^|[^V])N/.test(morphCode)) {
+                        wordSpan.classList.add("highlight-noun");
+                        if (/(^|[^V])Np/.test(morphCode)) {
+                            wordSpan.classList.add("highlight-proper-noun");
+                            const lemmaNumber = lemma.match(/\d+/);
+                            if (lemmaNumber) {
+                                const key = lemmaNumber[0];
+                                if (!properNounCounts[key]) {
+                                    properNounCounts[key] = 0;
+                                }
+                                properNounCounts[key]++;
+                            }
+                        }
+                    }
 
-    // Check if morphology description includes "construct" and mark as construct noun
-    if (morphologyData[morphCode] && 
-    morphologyData[morphCode].toLowerCase().includes("construct") && 
-    morphologyData[morphCode].toLowerCase().includes("noun") && 
-    !morphologyData[morphCode].toLowerCase().includes("suffix")) {
-    wordSpan.classList.add('construct-noun'); // Apply construct noun styling automatically
-}
+                    // Check if morphology description includes "construct" and mark as construct noun
+                    if (morphologyData[morphCode] && 
+                        morphologyData[morphCode].toLowerCase().includes("construct") && 
+                        morphologyData[morphCode].toLowerCase().includes("noun") && 
+                        !morphologyData[morphCode].toLowerCase().includes("suffix")) {
+                        wordSpan.classList.add('construct-noun'); // Apply construct noun styling automatically
+                    }
 
-    wordSpan.onclick = async () => {
-        console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <section>
-                <span class="section-title">Word:</span> ${word.textContent}
-            </section>
-            <section>
-                <span class="section-title">Lemma:</span> ${lemma}
-            </section>
-            <section>
-                <span class="section-title">Morphology Code:</span> ${morphCode}
-            </section>`;
+                    wordSpan.onclick = async () => {
+                        console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
+                        const wordInfo = verseDiv.querySelector('.word-info');
+                        wordInfo.innerHTML = `
+                            <section>
+                                <span class="section-title">Word:</span> ${word.textContent}
+                            </section>
+                            <section>
+                                <span class="section-title">Lemma:</span> ${lemma}
+                            </section>
+                            <section>
+                                <span class="section-title">Morphology Code:</span> ${morphCode}
+                            </section>`;
 
-        // Morphology Section
-        const morphologySection = document.createElement('section');
-        morphologySection.className = 'morphology-section';
-        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
-        wordInfo.appendChild(morphologySection);
+                        const morphologySection = document.createElement('section');
+                        morphologySection.className = 'morphology-section';
+                        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
+                        wordInfo.appendChild(morphologySection);
 
-        // BDB Section
-        const bdbSection = document.createElement('section');
-        bdbSection.className = 'bdb-section';
-        bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
+                        const bdbSection = document.createElement('section');
+                        bdbSection.className = 'bdb-section';
+                        bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
 
-        const lemmaNumber = lemma.match(/\d+/)?.[0];
-        if (lemmaNumber) {
-            const lemmaID = `H${lemmaNumber}`;
-            const lemmaInfo = lemmaData[lemmaID];
+                        const lemmaNumber = lemma.match(/\d+/)?.[0];
+                        if (lemmaNumber) {
+                            const lemmaID = `H${lemmaNumber}`;
+                            const lemmaInfo = lemmaData[lemmaID];
 
-            if (lemmaInfo) {
-                try {
-                    const response = await fetch('HebrewStrong.xml');
-                    const text = await response.text();
-                    const parser = new DOMParser();
-                    const xmlDoc = parser.parseFromString(text, "application/xml");
-                    const entry = xmlDoc.querySelector(`entry[id="H${lemmaNumber}"]`);
+                            if (lemmaInfo) {
+                                try {
+                                    const response = await fetch('HebrewStrong.xml');
+                                    const text = await response.text();
+                                    const parser = new DOMParser();
+                                    const xmlDoc = parser.parseFromString(text, "application/xml");
+                                    const entry = xmlDoc.querySelector(`entry[id="H${lemmaNumber}"]`);
 
-                    // Populate BDB Content
-                    bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
-                    
-                    const source = entry.querySelector("source")?.textContent.trim();
-                    const meaning = entry.querySelector("meaning")?.textContent.trim();
-                    const usage = entry.querySelector("usage")?.textContent.trim();
+                                    bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
+                                    const source = entry.querySelector("source")?.textContent.trim();
+                                    const meaning = entry.querySelector("meaning")?.textContent.trim();
+                                    const usage = entry.querySelector("usage")?.textContent.trim();
 
-                    if (source) bdbSection.innerHTML += `<strong>Source:</strong> ${source}<br>`;
-                    if (meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${meaning}<br>`;
-                    if (usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${usage}`;
-                    
-                    wordInfo.appendChild(bdbSection);
+                                    if (source) bdbSection.innerHTML += `<strong>Source:</strong> ${source}<br>`;
+                                    if (meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${meaning}<br>`;
+                                    if (usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${usage}`;
+                                    
+                                    wordInfo.appendChild(bdbSection);
+                                } catch (error) {
+                                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
+                                    bdbSection.innerHTML += "Error loading BDB lemma details.";
+                                }
+                            } else {
+                                bdbSection.innerHTML += "No BDB data available for this lemma.";
+                            }
+                        } else {
+                            bdbSection.innerHTML += "Invalid lemma format.";
+                        }
+                    };
 
-                } catch (error) {
-                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
-                    bdbSection.innerHTML += "Error loading BDB lemma details.";
-                }
-            } else {
-                bdbSection.innerHTML += "No BDB data available for this lemma.";
-            }
-        } else {
-            bdbSection.innerHTML += "Invalid lemma format.";
-        }
-    };
-
-    hebrewText.appendChild(wordSpan);
-});
-
-// After counting, update the chart
-updateChart();
+                    hebrewText.appendChild(wordSpan);
+                });
 
                 verseDiv.appendChild(hebrewText);
 
@@ -1144,9 +1184,14 @@ updateChart();
             }
         });
     }
+
+    // Update the chart with the new proper noun counts
+    updateChart();
 }
 
 async function loadVerse() {
+      // Reset proper noun counts for new data load
+    properNounCounts = {};
     console.log("Loading specific verse...");
     const bookSelect = document.getElementById('bookSelect').value; // Ensure correct dropdown is used
     const chapter = parseInt(document.getElementById('chapter').value);
@@ -1366,7 +1411,7 @@ window.onload = async function() {
 
     // Prepare the data for the chart and sort by frequency in descending order
     const sortedProperNouns = Object.entries(properNounCounts)
-        .sort((a, b) => b[1] - a[1]); // Sort by frequency in descending order
+        .sort((a, b) => b[1] - a[1]);
 
     // Separate sorted lemma numbers and their frequencies
     const labels = sortedProperNouns.map(([lemmaNumber]) => {
@@ -1375,31 +1420,33 @@ window.onload = async function() {
     });
     const data = sortedProperNouns.map(([, frequency]) => frequency);
 
-    // Create a new chart instance with sorted data
-    chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Proper Noun Frequency',
-                data: data,
-                backgroundColor: 'rgba(255, 205, 86, 0.8)',
-                borderColor: 'rgba(255, 159, 64, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: {
-                    beginAtZero: true
-                },
-                y: {
-                    beginAtZero: true
+    // Only create a chart if there is data to display
+    if (data.length > 0) {
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Proper Noun Frequency',
+                    data: data,
+                    backgroundColor: 'rgba(255, 205, 86, 0.8)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 }
 
 function filterByType(typeClass) {
@@ -1422,6 +1469,19 @@ function showAllWords() {
     verseContainer.querySelectorAll('.verse-container').forEach(verse => {
         verse.style.display = 'block'; // Show all verses
     });
+}
+
+function updateParshaFromSlider() {
+    const slider = document.getElementById('parshaSlider');
+    const sliderValue = parseInt(slider.value);
+    const parshaName = parshaNames[sliderValue];
+
+    const parshaSelect = document.getElementById('parshaSelect');
+    parshaSelect.value = parshaName;
+
+    document.getElementById('sliderValue').textContent = parshaName;
+
+    loadAliyot(); // Load Aliyot but keep the current Aliya selection
 }
     </script>
 </body>
