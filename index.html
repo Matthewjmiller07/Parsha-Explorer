@@ -98,12 +98,13 @@
         }
     
         .word-container {
-            display: inline-block;
-            margin: 0 5px;
-            cursor: pointer;
-            padding: 2px 4px;
-            transition: background-color 0.2s;
-        }
+    display: inline-block;
+    margin: 0 5px;
+    cursor: pointer;
+    padding: 2px 4px;
+    transition: background-color 0.2s;
+    position: relative; /* This is essential for the tooltip positioning */
+}
     
         .word-container:hover {
             background-color: #f0f0f0;
@@ -158,6 +159,28 @@
         .highlight-key div {
             margin-bottom: 5px;
         }
+
+        .tooltip {
+    display: none;
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 4px 8px; /* Reduced padding */
+    border-radius: 4px;
+    font-size: 13px; /* Slightly smaller font size */
+    z-index: 100;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    margin-bottom: 10px;
+    max-width: 2000px; 
+    word-wrap: break-word; 
+}
+
+.word-container:hover .tooltip { 
+    display: block;
+}
     </style>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js library -->
 
@@ -977,20 +1000,13 @@ loadLemmaData().then(() => {
     const lemma = word.getAttribute("lemma");
     const morphCode = word.getAttribute("morph");
 
-    // Apply noun highlight only if 'N' is present without preceding 'V'
     if (morphCode && /(^|[^V])N/.test(morphCode)) {
         wordSpan.classList.add("highlight-noun");
-
-        // Additional underline if it is a proper noun (contains 'Np' and not preceded by 'V')
         if (/(^|[^V])Np/.test(morphCode)) {
             wordSpan.classList.add("highlight-proper-noun");
-
-            // Extract numerical identifier from lemma, e.g., '85' from 'c/85'
-            const lemmaNumber = lemma.match(/\d+/);
+            const lemmaNumber = lemma.match(/^([a-z]\/)?(\d+)\s*([a-z])?$/);
             if (lemmaNumber) {
-                const key = lemmaNumber[0]; // Use the number as the key
-
-                // Increment count for this lemma number
+                const key = lemmaNumber[0];
                 if (!properNounCounts[key]) {
                     properNounCounts[key] = 0;
                 }
@@ -1001,25 +1017,69 @@ loadLemmaData().then(() => {
 
     wordSpan.onclick = () => {
         console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
-
         const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <strong>Word:</strong> ${word.textContent}<br>
-            <strong>Lemma:</strong> ${lemma}<br>
-            <strong>Morphology Code:</strong> ${morphCode}<br>
-        `;
-
-        // Check if morphology description is available and append button
+        wordInfo.innerHTML = `<strong>Word:</strong> ${word.textContent}<br><strong>Lemma:</strong> ${lemma}<br><strong>Morphology Code:</strong> ${morphCode}<br>`;
         if (morphCode && morphologyData[morphCode]) {
             const expandButton = document.createElement('button');
             expandButton.textContent = "Expand Morphology";
             expandButton.onclick = () => expandMorphology(morphCode, expandButton);
             wordInfo.appendChild(expandButton);
-
             console.log(`Button appended for Morphology Code: ${morphCode}`);
         } else {
             wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
             console.warn(`No description found for morphology code: '${morphCode}'`);
+        }
+    };
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    wordSpan.appendChild(tooltip);
+
+    wordSpan.onmouseover = async () => {
+        const lemma = word.getAttribute("lemma");
+        console.log("Lemma attribute:", lemma);
+
+        const lemmaNumber = lemma.match(/^(?:c\/|l\/)?(\d+)/);
+        console.log("Lemma number match:", lemmaNumber);
+
+        if (lemmaNumber) {
+            const lemmaID = lemmaNumber[1];
+            const lemmaInfo = lemmaData[`H${lemmaID}`];
+
+            if (lemmaInfo) {
+                try {
+                    const response = await fetch('HebrewStrong.xml');
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(text, "application/xml");
+
+                    const entry = xmlDoc.querySelector('entry[id="H' + lemmaID + '"]');
+
+                    let tooltipContent = `${lemmaInfo.word}: ${lemmaInfo.definition}`;
+                    const source = entry.querySelector("source")?.textContent.trim();
+                    const meaning = entry.querySelector("meaning")?.textContent.trim();
+                    const usage = entry.querySelector("usage")?.textContent.trim();
+
+                    if (source) {
+                        tooltipContent += `<br>Source: ${source}`;
+                    }
+                    if (meaning) {
+                        tooltipContent += `<br>Meaning: ${meaning}`;
+                    }
+                    if (usage) {
+                        tooltipContent += `<br>Usage: ${usage}`;
+                    }
+
+                    tooltip.innerHTML = tooltipContent;
+                } catch (error) {
+                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
+                    tooltip.textContent = "Error loading lemma details.";
+                }
+            } else {
+                tooltip.textContent = "Lemma information not found.";
+            }
+        } else {
+            tooltip.textContent = "Invalid lemma format.";
         }
     };
 
@@ -1093,60 +1153,97 @@ async function loadVerse() {
     const words = Array.from(verseNode.childNodes).filter(node => node.nodeName === "w");
 
     words.forEach(word => {
-        const wordSpan = document.createElement('span');
-        wordSpan.className = 'word-container';
-        wordSpan.textContent = word.textContent;
-        const lemma = word.getAttribute("lemma");
-        const morphCode = word.getAttribute("morph");
+    const wordSpan = document.createElement('span');
+    wordSpan.className = 'word-container';
+    wordSpan.textContent = word.textContent;
+    const lemma = word.getAttribute("lemma");
+    const morphCode = word.getAttribute("morph");
 
-        // Apply noun highlight if 'N' is present without preceding 'V'
-        if (morphCode && /(^|[^V])N/.test(morphCode)) {
-            wordSpan.classList.add("highlight-noun");
-
-            // Additional underline if it is a proper noun (contains 'Np' and not preceded by 'V')
-            if (/(^|[^V])Np/.test(morphCode)) {
-                wordSpan.classList.add("highlight-proper-noun");
-
-                // Extract numerical identifier from lemma, e.g., '85' from 'c/85'
-                const lemmaNumber = lemma.match(/\d+/);
-                if (lemmaNumber) {
-                    const key = lemmaNumber[0]; // Use the number as the key
-
-                    // Increment count for this lemma number
-                    if (!properNounCounts[key]) {
-                        properNounCounts[key] = 0;
-                    }
-                    properNounCounts[key]++;
+    if (morphCode && /(^|[^V])N/.test(morphCode)) {
+        wordSpan.classList.add("highlight-noun");
+        if (/(^|[^V])Np/.test(morphCode)) {
+            wordSpan.classList.add("highlight-proper-noun");
+            const lemmaNumber = lemma.match(/\d+/);
+            if (lemmaNumber) {
+                const key = lemmaNumber[0];
+                if (!properNounCounts[key]) {
+                    properNounCounts[key] = 0;
                 }
+                properNounCounts[key]++;
             }
         }
+    }
 
-        wordSpan.onclick = () => {
-            console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
+    wordSpan.onclick = () => {
+        console.log(`Clicked word: ${word.textContent}, Morphology Code: ${morphCode}`);
+        const wordInfo = verseDiv.querySelector('.word-info');
+        wordInfo.innerHTML = `<strong>Word:</strong> ${word.textContent}<br><strong>Lemma:</strong> ${lemma}<br><strong>Morphology Code:</strong> ${morphCode}<br>`;
+        if (morphCode && morphologyData[morphCode]) {
+            const expandButton = document.createElement('button');
+            expandButton.textContent = "Expand Morphology";
+            expandButton.onclick = () => expandMorphology(morphCode, expandButton);
+            wordInfo.appendChild(expandButton);
+            console.log(`Button appended for Morphology Code: ${morphCode}`);
+        } else {
+            wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
+            console.warn(`No description found for morphology code: '${morphCode}'`);
+        }
+    };
 
-            const wordInfo = verseDiv.querySelector('.word-info');
-            wordInfo.innerHTML = `
-                <strong>Word:</strong> ${word.textContent}<br>
-                <strong>Lemma:</strong> ${lemma}<br>
-                <strong>Morphology Code:</strong> ${morphCode}<br>
-            `;
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    wordSpan.appendChild(tooltip);
 
-            // Check if morphology description is available and append button
-            if (morphCode && morphologyData[morphCode]) {
-                const expandButton = document.createElement('button');
-                expandButton.textContent = "Expand Morphology";
-                expandButton.onclick = () => expandMorphology(morphCode, expandButton);
-                wordInfo.appendChild(expandButton);
+    wordSpan.onmouseover = async () => {
+        const lemma = word.getAttribute("lemma");
+        console.log("Lemma attribute:", lemma);
 
-                console.log(`Button appended for Morphology Code: ${morphCode}`);
+        const lemmaNumber = lemma.match(/^([a-z]\/)?(\d+)\s*([a-z])?$/);
+        console.log("Lemma number match:", lemmaNumber);
+
+        if (lemmaNumber) {
+            const lemmaID = lemmaNumber[1];
+            const lemmaInfo = lemmaData[`H${lemmaID}`];
+
+            if (lemmaInfo) {
+                try {
+                    const response = await fetch('HebrewStrong.xml');
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(text, "application/xml");
+
+                    const entry = xmlDoc.querySelector('entry[id="H' + lemmaID + '"]');
+
+                    let tooltipContent = `${lemmaInfo.word}: ${lemmaInfo.definition}`;
+                    const source = entry.querySelector("source")?.textContent.trim();
+                    const meaning = entry.querySelector("meaning")?.textContent.trim();
+                    const usage = entry.querySelector("usage")?.textContent.trim();
+
+                    if (source) {
+                        tooltipContent += `<br>Source: ${source}`;
+                    }
+                    if (meaning) {
+                        tooltipContent += `<br>Meaning: ${meaning}`;
+                    }
+                    if (usage) {
+                        tooltipContent += `<br>Usage: ${usage}`;
+                    }
+
+                    tooltip.innerHTML = tooltipContent;
+                } catch (error) {
+                    console.error("Error fetching or parsing HebrewStrong.xml:", error);
+                    tooltip.textContent = "Error loading lemma details.";
+                }
             } else {
-                wordInfo.innerHTML += `<br><strong>Morphology Description:</strong> Not available in data.`;
-                console.warn(`No description found for morphology code: '${morphCode}'`);
+                tooltip.textContent = "Lemma information not found.";
             }
-        };
+        } else {
+            tooltip.textContent = "Invalid lemma format.";
+        }
+    };
 
-        hebrewText.appendChild(wordSpan);
-    });
+    hebrewText.appendChild(wordSpan);
+});
 
     verseDiv.appendChild(hebrewText);
 
