@@ -11,7 +11,20 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #f7f9fc;
+            color: #333;
+        }
+    
+        .title-display {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            color: #2c3e50;
+            background-color: #eaf2f8;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
     
         .verse-container {
@@ -31,61 +44,45 @@
         }
     
         .word-info {
-    font-size: 14px;
-    color: #666;
-    margin-top: 15px;
-    padding: 10px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    direction: ltr;
-    text-align: left;
-    max-height: 300px; /* Add max height to prevent overflow */
-    overflow-y: auto; /* Enable scrolling if content exceeds max height */
-}
-
-.word-info section {
-    margin-bottom: 10px;
-}
-
-.word-info .bdb-section, .word-info .morphology-section {
-    padding: 8px;
-    border-radius: 4px;
-    background-color: #e6f7ff;
-}
-
-.word-info .section-title {
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
-}
+            font-size: 14px;
+            color: #666;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            direction: ltr;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+        }
     
-        .controls {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
+        .word-info section {
+            margin-bottom: 10px;
+        }
+    
+        .word-info .bdb-section, .word-info .morphology-section {
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #e6f7ff;
+        }
+    
+        .word-info .section-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
         }
     
         .controls-section {
-    background-color: #e9f5ff;
-    border: 1px solid #b3d8ff;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-}
-
-.slider-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    margin-top: 10px; /* Add space above slider */
-}
-
+            background-color: #eaf3ff;
+            border: 1px solid #cddffb;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-start;
+        }
     
         select, input, button {
             padding: 8px;
@@ -94,8 +91,9 @@
             font-size: 16px;
         }
     
-        input {
-            width: 80px;
+        input[type=range] {
+            width: 100%;
+            max-width: 500px;
         }
     
         button {
@@ -110,131 +108,77 @@
             background-color: #357abd;
         }
     
-        #loading {
-            color: #666;
-            text-align: center;
-            padding: 20px;
-        }
-    
         .error {
             color: #d32f2f;
             padding: 10px;
-            margin: 10px 0;
             background-color: #ffebee;
             border-radius: 4px;
+            margin-bottom: 15px;
+            text-align: center;
         }
     
         .word-container {
-    display: inline-block;
-    margin: 0 5px;
-    cursor: pointer;
-    padding: 2px 4px;
-    transition: background-color 0.2s;
-    position: relative; /* This is essential for the tooltip positioning */
-}
+            display: inline-block;
+            margin: 0 5px;
+            cursor: pointer;
+            padding: 2px 4px;
+            transition: background-color 0.2s;
+            position: relative;
+        }
     
         .word-container:hover {
             background-color: #f0f0f0;
             border-radius: 4px;
         }
     
-        .navigation-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-    
-        .navigation-buttons button {
-            flex: 1;
-        }
-    
-        .reference-display {
-            text-align: center;
-            font-size: 18px;
-            margin-bottom: 10px;
-            color: #4a4a4a;
-        }
-    
-        .verse-label {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 5px;
-            direction: ltr;
-            text-align: left;
-        }
-    
-        /* Highlight classes for different morphology prefixes */
         .highlight-noun {
-    background-color: yellow;
-    font-weight: bold;
-}
-
-/* Add this CSS for verb highlight */
-.highlight-verb {
-    background-color: #ffd700; /* Gold color for verbs */
-    font-weight: bold;
-}
-
-/* Style for proper nouns with a black outline */
-.highlight-proper-noun {
-    border: 2px solid black; /* Adds a black outline around the box */
-    border-radius: 4px;      /* Optional: Adds a slight rounding to the corners */
-    padding: 2px;            /* Adds padding to keep the text inside the border */
-}
-
-/* Style specifically for construct nouns */
-
-.construct-noun {
-    border: 2px dashed black;
-    background-color: #f0e68c; /* Light khaki background */
-    padding: 2px;
-    border-radius: 4px;
-    margin: 0 2px; /* Adjusts spacing between words */
-}
+            background-color: yellow;
+            font-weight: bold;
+        }
     
-        /* Style for the key section */
-        .highlight-key {
-            margin-top: 10px;
-            padding: 10px;
-            background-color: #f0f0f0;
+        .highlight-verb {
+            background-color: #ffd700;
+            font-weight: bold;
+        }
+    
+        .highlight-proper-noun {
+            border: 2px solid black;
             border-radius: 4px;
-            font-size: 14px;
+            padding: 2px;
         }
     
-        .highlight-key div {
-            margin-bottom: 5px;
+        .construct-noun {
+            border: 2px dashed black;
+            background-color: #f0e68c;
+            padding: 2px;
+            border-radius: 4px;
+            margin: 0 2px;
         }
-
+    
         .tooltip {
-    display: none;
-    position: absolute;
-    background-color: #333;
-    color: #fff;
-    padding: 4px 8px; /* Reduced padding */
-    border-radius: 4px;
-    font-size: 13px; /* Slightly smaller font size */
-    z-index: 100;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-    margin-bottom: 10px;
-    max-width: 2000px; 
-    word-wrap: break-word; 
-}
-
-.word-container:hover .tooltip { 
-    display: block;
-}
-
-.slider-container {
-            margin-bottom: 20px;
+            display: none;
+            position: absolute;
+            background-color: #333;
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            z-index: 100;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            margin-bottom: 10px;
+            max-width: 200px;
+            word-wrap: break-word;
         }
-        input[type=range] {
-            width: 100%;
-            max-width: 500px;
+    
+        .word-container:hover .tooltip {
+            display: block;
         }
     </style>
+    
+   
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Add Chart.js library -->
 
 </head>
@@ -333,7 +277,7 @@
     <div id="loading" style="display:none">Loading...</div>
     <div id="error" class="error" style="display:none"></div>
     
-    <div class="reference-display" id="referenceDisplay"></div>
+    <div class="title-display" id="referenceDisplay">Loading Title...</div>
 
     <div class="controls">
         <label for="chartTypeSelect">Select Chart Type:</label>
@@ -1218,6 +1162,7 @@ function loadAliyaRangeFromAliya() {
 }
 
 async function loadAliyaRange(startRef = null, endRef = null) {
+    // Reset counts for proper nouns and verbs for new data load
     properNounCounts = {};
     verbCounts = {};
 
@@ -1248,6 +1193,10 @@ async function loadAliyaRange(startRef = null, endRef = null) {
 
     const verseContainer = document.getElementById('verseContainer');
     verseContainer.innerHTML = '';
+
+    // Display range as title
+    const title = `${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
+    document.getElementById('referenceDisplay').textContent = title;
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
         const chapterOsisID = `${bookCode}.${chapter}`;
@@ -1285,6 +1234,7 @@ async function loadAliyaRange(startRef = null, endRef = null) {
                     const morphCode = word.getAttribute("morph");
                     const morphDescription = morphologyData[morphCode];
 
+                    // Highlight nouns, proper nouns, verbs, and construct nouns
                     if (morphCode && /(^|[^V])N/.test(morphCode)) {
                         wordSpan.classList.add("highlight-noun");
                         if (/(^|[^V])Np/.test(morphCode)) {
@@ -1314,6 +1264,7 @@ async function loadAliyaRange(startRef = null, endRef = null) {
                         }
                     }
 
+                    // Set up click for word details
                     wordSpan.onclick = async () => {
                         const wordInfo = verseDiv.querySelector('.word-info');
                         wordInfo.innerHTML = `
@@ -1353,7 +1304,11 @@ async function loadAliyaRange(startRef = null, endRef = null) {
         });
     }
 
-    updateChart();
+    if (Object.keys(properNounCounts).length > 0 || Object.keys(verbCounts).length > 0) {
+        updateChart();
+    } else {
+        console.warn("No proper nouns or verbs found in the selected range.");
+    }
 }
 
 
@@ -1389,29 +1344,38 @@ async function loadVerse() {
     verseContainer.innerHTML = ''; // Clear any previous verses
 
     let startChapter, startVerse, endChapter, endVerse;
+    let title;
+
     if (!rangeInput) {
         startChapter = 1;
         endChapter = books[bookSelect].chapters.length;
         startVerse = 1;
         endVerse = books[bookSelect].chapters[endChapter - 1];
+        title = `${bookSelect} (Entire Book)`;
     } else if (/^\d+$/.test(rangeInput)) {
         startChapter = parseInt(rangeInput, 10);
         endChapter = startChapter;
         startVerse = 1;
         endVerse = books[bookSelect].chapters[startChapter - 1];
+        title = `${bookSelect} ${startChapter}`;
     } else if (/^\d+-\d+$/.test(rangeInput)) {
         [startChapter, endChapter] = rangeInput.split("-").map(Number);
         startVerse = 1;
         endVerse = books[bookSelect].chapters[endChapter - 1];
+        title = `${bookSelect} ${startChapter}-${endChapter}`;
     } else if (rangeInput.includes("-")) {
         const [start, end] = rangeInput.split("-");
         [startChapter, startVerse] = start.split(":").map(Number);
         [endChapter, endVerse] = end.split(":").map(Number);
+        title = `${bookSelect} ${startChapter}:${startVerse}-${endChapter}:${endVerse}`;
     } else {
         [startChapter, startVerse] = rangeInput.split(":").map(Number);
         endChapter = startChapter;
         endVerse = startVerse;
+        title = `${bookSelect} ${startChapter}:${startVerse}`;
     }
+
+    document.getElementById('referenceDisplay').textContent = title;
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
         const chapterNode = xmlData.querySelector(`chapter[osisID="${bookCode}.${chapter}"]`);
@@ -1469,7 +1433,6 @@ async function loadVerse() {
                             const key = lemmaNumber[0];
                             verbCounts[key] = (verbCounts[key] || 0) + 1;
                             wordSpan.setAttribute("data-lemma", key); // Set data-lemma for filtering verbs
-                            console.log(`Verb Highlighted: ${word.textContent} - Morphology: ${morphDescription}`);
                         }
                     }
 
