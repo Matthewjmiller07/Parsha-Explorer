@@ -169,6 +169,12 @@
     font-weight: bold;
 }
 
+/* Add this CSS for verb highlight */
+.highlight-verb {
+    background-color: #ffd700; /* Gold color for verbs */
+    font-weight: bold;
+}
+
 /* Style for proper nouns with a black outline */
 .highlight-proper-noun {
     border: 2px solid black; /* Adds a black outline around the box */
@@ -315,6 +321,9 @@
         </div>
         <div onclick="filterByType('construct-noun')">
             <span class="construct-noun" style="cursor: pointer; border: 1px dashed;">Dashed Border</span>: Construct Noun
+        </div>
+        <div onclick="filterByType('highlight-verb')">
+            <span class="highlight-verb" style="cursor: pointer; background-color: #ffd700; font-weight: bold;">Gold Highlight</span>: Verb
         </div>
     </div>
 
@@ -1204,13 +1213,11 @@ async function loadAliyaRange(startRef = null, endRef = null) {
     const aliyaRange = aliyaSelect.value;
 
     // If specific start and end references are provided, use them directly
-    // Otherwise, use the selected Aliya's range
     if (!startRef || !endRef) {
         if (!aliyaRange) {
             showError("Please select a valid Aliya.");
             return;
         }
-
         [startRef, endRef] = aliyaRange.split("-").map(ref => ref.trim());
     }
 
@@ -1228,26 +1235,19 @@ async function loadAliyaRange(startRef = null, endRef = null) {
     verseContainer.innerHTML = ''; // Clear previous verses
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
-        let bookCode = startBook.slice(0, 3);
-        if (startBook === "Exodus" || startBook === "Deuteronomy") {
-            bookCode = startBook.slice(0, 4);
-        }
-
-        const chapterOsisID = `${bookCode}.${chapter}`;
-        const chapterNode = xmlData.querySelector(`chapter[osisID="${chapterOsisID}"]`);
+        const bookCode = bookMap[startBook].replace(".xml", "");
+        const chapterNode = xmlData.querySelector(`chapter[osisID="${bookCode}.${chapter}"]`);
 
         if (!chapterNode) {
-            console.warn(`Chapter not found: ${chapterOsisID}`);
+            console.warn(`Chapter not found: ${bookCode}.${chapter}`);
             continue;
         }
 
-        const maxVerse = (chapter === endChapter) ? endVerse : Infinity;
+        const maxVerse = (chapter === endChapter) ? endVerse : books[startBook].chapters[chapter - 1];
         const minVerse = (chapter === startChapter) ? startVerse : 1;
 
-        const verses = Array.from(chapterNode.querySelectorAll("verse"));
-        verses.forEach(verseNode => {
-            const verseOsisID = verseNode.getAttribute("osisID");
-            const verseNumber = parseInt(verseOsisID.split(".")[2]);
+        chapterNode.querySelectorAll("verse").forEach(verseNode => {
+            const verseNumber = parseInt(verseNode.getAttribute("osisID").split(".")[2]);
 
             if (verseNumber >= minVerse && verseNumber <= maxVerse) {
                 const verseDiv = document.createElement('div');
@@ -1261,82 +1261,82 @@ async function loadAliyaRange(startRef = null, endRef = null) {
                 const hebrewText = document.createElement('div');
                 hebrewText.className = 'hebrew-text';
 
-                const words = Array.from(verseNode.childNodes).filter(node => node.nodeName === "w");
+                Array.from(verseNode.childNodes).filter(node => node.nodeName === "w").forEach(word => {
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'word-container';
+                    wordSpan.textContent = word.textContent;
 
-                words.forEach(word => {
-    const wordSpan = document.createElement('span');
-    wordSpan.className = 'word-container';
-    wordSpan.textContent = word.textContent;
+                    const lemma = word.getAttribute("lemma");
+                    const morphCode = word.getAttribute("morph");
+                    const morphDescription = morphologyData[morphCode] || '';
+                    
+                    // Log morphology data for debugging
+                    console.log(`Word: ${word.textContent}, Morphology: ${morphDescription}`);
 
-    // Extract lemma and morphology information
-    const lemma = word.getAttribute("lemma");
-    const morphCode = word.getAttribute("morph");
+                    // Highlight verbs
+                    if (morphDescription.toLowerCase().includes("verb")) {
+                        wordSpan.classList.add("highlight-verb");
+                    }
 
-    // Attempt to extract lemma number from lemma attribute (e.g., "H1234" -> "1234")
-    const lemmaNumberMatch = lemma ? lemma.match(/\d+/) : null;
-    const lemmaNumber = lemmaNumberMatch ? lemmaNumberMatch[0] : null;
+                    // Highlight nouns and proper nouns
+                    if (morphCode && /(^|[^V])N/.test(morphCode)) {
+                        wordSpan.classList.add("highlight-noun");
+                        if (/(^|[^V])Np/.test(morphCode)) {
+                            wordSpan.classList.add("highlight-proper-noun");
+                            const lemmaNumber = lemma.match(/\d+/);
+                            if (lemmaNumber) {
+                                const key = lemmaNumber[0];
+                                properNounCounts[key] = (properNounCounts[key] || 0) + 1;
+                                wordSpan.setAttribute("data-lemma", key);
+                            }
+                        }
+                    }
 
-    // Set data-lemma attribute for later filtering if lemma number is valid
-    if (lemmaNumber) {
-        wordSpan.setAttribute("data-lemma", lemmaNumber);
-        
-        // Count proper nouns for the chart based on morphology code
-        if (/(^|[^V])Np/.test(morphCode)) {
-            wordSpan.classList.add("highlight-proper-noun");
-            properNounCounts[lemmaNumber] = (properNounCounts[lemmaNumber] || 0) + 1;
-        }
-    }
+                    // Highlight construct nouns
+                    if (morphDescription.toLowerCase().includes("construct") &&
+                        morphDescription.toLowerCase().includes("noun") &&
+                        !morphDescription.toLowerCase().includes("suffix")) {
+                        wordSpan.classList.add("construct-noun");
+                    }
 
-    // Apply highlights based on morphology codes
-    if (morphCode && /(^|[^V])N/.test(morphCode)) {
-        wordSpan.classList.add("highlight-noun");
-    }
-    if (morphologyData[morphCode]?.toLowerCase().includes("construct") && 
-        morphologyData[morphCode]?.toLowerCase().includes("noun") && 
-        !morphologyData[morphCode]?.toLowerCase().includes("suffix")) {
-        wordSpan.classList.add('construct-noun'); // Apply construct noun styling
-    }
+                    // Attach click event to display word info
+                    wordSpan.onclick = async () => {
+                        const wordInfo = verseDiv.querySelector('.word-info');
+                        wordInfo.innerHTML = `
+                            <section><span class="section-title">Word:</span> ${word.textContent}</section>
+                            <section><span class="section-title">Lemma:</span> ${lemma}</section>
+                            <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>`;
 
-    // Word click event to display morphology and BDB entry details
-    wordSpan.onclick = async () => {
-        const wordInfo = verseDiv.querySelector('.word-info');
-        wordInfo.innerHTML = `
-            <section><span class="section-title">Word:</span> ${word.textContent}</section>
-            <section><span class="section-title">Lemma:</span> ${lemma}</section>
-            <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>`;
-        
-        // Add morphology description if available
-        const morphologySection = document.createElement('section');
-        morphologySection.className = 'morphology-section';
-        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
-        wordInfo.appendChild(morphologySection);
+                        const morphologySection = document.createElement('section');
+                        morphologySection.className = 'morphology-section';
+                        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphDescription || 'Not available in data.'}`;
+                        wordInfo.appendChild(morphologySection);
 
-        // Display BDB entry if lemma number is valid
-        if (lemmaNumber) {
-            const bdbSection = document.createElement('section');
-            bdbSection.className = 'bdb-section';
-            bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
+                        // Display BDB entry if lemma number is valid
+                        const lemmaNumber = lemma.match(/\d+/)?.[0];
+                        if (lemmaNumber) {
+                            const lemmaID = `H${lemmaNumber}`;
+                            const lemmaInfo = lemmaData[lemmaID];
 
-            const lemmaID = `H${lemmaNumber}`;
-            const lemmaInfo = lemmaData[lemmaID];
+                            const bdbSection = document.createElement('section');
+                            bdbSection.className = 'bdb-section';
+                            bdbSection.innerHTML = `<span class="section-title">BDB Entry</span><br>`;
 
-            if (lemmaInfo) {
-                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
-                const entry = (await fetchBDBEntry(lemmaNumber)) || {};
-                if (entry.source) bdbSection.innerHTML += `<strong>Source:</strong> ${entry.source}<br>`;
-                if (entry.meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${entry.meaning}<br>`;
-                if (entry.usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${entry.usage}`;
-            } else {
-                bdbSection.innerHTML += "No BDB data available for this lemma.";
-            }
-            wordInfo.appendChild(bdbSection);
-        }
-    };
+                            if (lemmaInfo) {
+                                bdbSection.innerHTML += `<strong>Word:</strong> ${lemmaInfo.word}<br><strong>Definition:</strong> ${lemmaInfo.definition}<br>`;
+                                const entry = (await fetchBDBEntry(lemmaNumber)) || {};
+                                if (entry.source) bdbSection.innerHTML += `<strong>Source:</strong> ${entry.source}<br>`;
+                                if (entry.meaning) bdbSection.innerHTML += `<strong>Meaning:</strong> ${entry.meaning}<br>`;
+                                if (entry.usage) bdbSection.innerHTML += `<strong>Usage:</strong> ${entry.usage}`;
+                            } else {
+                                bdbSection.innerHTML += "No BDB data available for this lemma.";
+                            }
+                            wordInfo.appendChild(bdbSection);
+                        }
+                    };
 
-    // Append the wordSpan to the main hebrew text container
-    hebrewText.appendChild(wordSpan);
-});
-
+                    hebrewText.appendChild(wordSpan);
+                });
 
                 verseDiv.appendChild(hebrewText);
 
@@ -1349,6 +1349,14 @@ async function loadAliyaRange(startRef = null, endRef = null) {
             }
         });
     }
+
+    // Update the chart with proper noun counts
+    if (Object.keys(properNounCounts).length > 0) {
+        updateChart();
+    } else {
+        console.warn("No proper nouns found in the selected range.");
+    }
+
 
     // Update the chart with the new proper noun counts
     updateChart();
@@ -1389,29 +1397,24 @@ async function loadVerse() {
     let startChapter, startVerse, endChapter, endVerse;
 
     if (!rangeInput) {
-        // No range specified; load entire book
         startChapter = 1;
         endChapter = books[bookSelect].chapters.length;
         startVerse = 1;
         endVerse = books[bookSelect].chapters[endChapter - 1];
     } else if (/^\d+$/.test(rangeInput)) {
-        // Single chapter (e.g., "2")
         startChapter = parseInt(rangeInput, 10);
         endChapter = startChapter;
         startVerse = 1;
         endVerse = books[bookSelect].chapters[startChapter - 1];
     } else if (/^\d+-\d+$/.test(rangeInput)) {
-        // Range of chapters (e.g., "2-3")
         [startChapter, endChapter] = rangeInput.split("-").map(Number);
         startVerse = 1;
         endVerse = books[bookSelect].chapters[endChapter - 1];
     } else if (rangeInput.includes("-")) {
-        // Specific range of verses (e.g., "1:5-2:1")
         const [start, end] = rangeInput.split("-");
         [startChapter, startVerse] = start.split(":").map(Number);
         [endChapter, endVerse] = end.split(":").map(Number);
     } else {
-        // Single verse specified (e.g., "1:1")
         [startChapter, startVerse] = rangeInput.split(":").map(Number);
         endChapter = startChapter;
         endVerse = startVerse;
@@ -1446,7 +1449,6 @@ async function loadVerse() {
                     const lemma = word.getAttribute("lemma");
                     const morphCode = word.getAttribute("morph");
 
-                    // Apply highlights and add to counts if it's a proper noun
                     if (morphCode && /(^|[^V])N/.test(morphCode)) {
                         wordSpan.classList.add("highlight-noun");
                         if (/(^|[^V])Np/.test(morphCode)) {
@@ -1455,16 +1457,23 @@ async function loadVerse() {
                             if (lemmaNumber) {
                                 const key = lemmaNumber[0];
                                 properNounCounts[key] = (properNounCounts[key] || 0) + 1;
-                                wordSpan.setAttribute("data-lemma", key); // Set data-lemma for filtering
+                                wordSpan.setAttribute("data-lemma", key);
                             }
                         }
                     }
 
-                    // Check if the word is a construct noun
                     if (morphologyData[morphCode]?.toLowerCase().includes("construct") && 
                         morphologyData[morphCode]?.toLowerCase().includes("noun") && 
                         !morphologyData[morphCode]?.toLowerCase().includes("suffix")) {
                         wordSpan.classList.add('construct-noun');
+                    }
+
+                    const morphDescription = morphologyData[morphCode];
+                    if (morphDescription && morphDescription.toLowerCase().includes("verb")) {
+                        wordSpan.classList.add('highlight-verb');
+                        console.log(`Verb Highlighted: ${word.textContent} - Morphology: ${morphDescription}`);
+                    } else {
+                        console.log(`No Verb: ${word.textContent} - Morphology: ${morphDescription || "No description"}`);
                     }
 
                     wordSpan.onclick = async () => {
@@ -1476,7 +1485,7 @@ async function loadVerse() {
 
                         const morphologySection = document.createElement('section');
                         morphologySection.className = 'morphology-section';
-                        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphologyData[morphCode] || 'Not available in data.'}`;
+                        morphologySection.innerHTML = `<span class="section-title">Morphology Description:</span> ${morphDescription || 'Not available in data.'}`;
                         wordInfo.appendChild(morphologySection);
 
                         const bdbSection = document.createElement('section');
@@ -1531,7 +1540,6 @@ async function loadVerse() {
         });
     }
 
-    // Update the chart with the new proper noun counts
     if (Object.keys(properNounCounts).length > 0) {
         updateChart();
     } else {
