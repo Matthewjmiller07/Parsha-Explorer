@@ -198,41 +198,33 @@
     gap: 8px;
 }
 
-.highlight-key div {
-    padding: 8px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-    font-weight: bold;
+.filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-/* Styling each filter type with enhanced visibility */
-.highlight-key div:hover {
+.word-count {
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
     background-color: #e0e0e0;
 }
 
-.active-filter-highlight-noun {
-    background-color: #FFEB3B; /* Yellow */
-    color: #333;
-    border: 2px solid #FFC107;
+.word-count:hover {
+    background-color: #d0d0d0;
 }
 
-.active-filter-highlight-proper-noun {
-    background-color: #333;
-    color: #fff;
-    border: 2px solid #444;
-}
-
-.active-filter-construct-noun {
-    background-color: #90CAF9; /* Light Blue */
+.word-list {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    font-size: 14px;
     color: #333;
-    border: 2px solid #42A5F5;
-}
-
-.active-filter-highlight-verb {
-    background-color: #FFD54F; /* Gold */
-    color: #333;
-    border: 2px solid #FFB300;
 }
     </style>
     
@@ -316,7 +308,7 @@
 
 
 
-    <button onclick="showAllWords()">Show All Words</button>
+    
     
     
     <div id="loading" style="display:none">Loading...</div>
@@ -325,21 +317,31 @@
     <div class="title-display" id="referenceDisplay">Loading Title...</div>
 
     <div class="filter-box">
-        <div class="filter-description">
-            <strong>Filters:</strong> Click on a filter to highlight specific types of words in the text. Click again to toggle off.
-        </div>
+        <div class="filter-description">Toggle filters to highlight different word types. Click the count to view words in that category.</div>
         <div class="highlight-key">
-            <div onclick="filterByType('highlight-noun')">
-                <span class="highlight-noun">Yellow Highlight</span>: Noun
+            <div class="filter-item">
+                <input type="checkbox" id="highlight-noun-checkbox" onclick="toggleFilter('highlight-noun')" />
+                <label for="highlight-noun-checkbox">Noun (</label>
+                <span id="highlight-noun-count" onclick="toggleWordsDisplay('highlight-noun')" style="cursor: pointer;">0</span><label>)</label>
+                <div id="highlight-noun-words" class="word-list"></div>
             </div>
-            <div onclick="filterByType('highlight-proper-noun')">
-                <span class="highlight-proper-noun">Black Outlined Box</span>: Proper Noun
+            <div class="filter-item">
+                <input type="checkbox" id="highlight-proper-noun-checkbox" onclick="toggleFilter('highlight-proper-noun')" />
+                <label for="highlight-proper-noun-checkbox">Proper Noun (</label>
+                <span id="highlight-proper-noun-count" onclick="toggleWordsDisplay('highlight-proper-noun')" style="cursor: pointer;">0</span><label>)</label>
+                <div id="highlight-proper-noun-words" class="word-list"></div>
             </div>
-            <div onclick="filterByType('construct-noun')">
-                <span class="construct-noun">Dashed Border</span>: Construct Noun
+            <div class="filter-item">
+                <input type="checkbox" id="construct-noun-checkbox" onclick="toggleFilter('construct-noun')" />
+                <label for="construct-noun-checkbox">Construct Noun (</label>
+                <span id="construct-noun-count" onclick="toggleWordsDisplay('construct-noun')" style="cursor: pointer;">0</span><label>)</label>
+                <div id="construct-noun-words" class="word-list"></div>
             </div>
-            <div onclick="filterByType('highlight-verb')">
-                <span class="highlight-verb">Gold Highlight</span>: Verb
+            <div class="filter-item">
+                <input type="checkbox" id="highlight-verb-checkbox" onclick="toggleFilter('highlight-verb')" />
+                <label for="highlight-verb-checkbox">Verb (</label>
+                <span id="highlight-verb-count" onclick="toggleWordsDisplay('highlight-verb')" style="cursor: pointer;">0</span><label>)</label>
+                <div id="highlight-verb-words" class="word-list"></div>
             </div>
         </div>
     </div>
@@ -354,6 +356,8 @@
     
     
     <canvas id="properNounChart" width="800" height="400"></canvas>
+
+    <button onclick="showAllWords()">Reset Verses</button>
     <div id="verseContainer"></div>
     
  
@@ -1226,22 +1230,17 @@ function loadAliyaRangeFromAliya() {
 }
 
 async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
-    // Reset counts for proper nouns and verbs for new data load
     properNounCounts = {};
     verbCounts = {};
 
-    const parshaSelect = document.getElementById('parshaSelect');
     const aliyaSelect = document.getElementById('aliyaSelect');
-    const selectedParsha = parshaSelect.options[parshaSelect.selectedIndex]?.text;
-    const selectedAliya = aliyaSelect.options[aliyaSelect.selectedIndex]?.text;
 
-    // Set the default range if no start or end reference is provided
     if (!startRef || !endRef) {
-        if (!aliyaSelect.value) { 
+        if (!aliyaSelect.value) {
             showError("Please select a valid Aliya.");
             return;
         }
-        [startRef, endRef] = aliyaSelect.value.split("-").map(ref => ref.trim()); 
+        [startRef, endRef] = aliyaSelect.value.split("-").map(ref => ref.trim());
     }
 
     const [startBook, startRefPoint] = startRef.split(" ");
@@ -1261,10 +1260,14 @@ async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
     const verseContainer = document.getElementById('verseContainer');
     verseContainer.innerHTML = '';
 
-    // Format title
-    const aliyaTitle = selectedAliya === "Select Aliya" ? "Whole Parsha" : selectedAliya;
-    const title = `${selectedParsha} (${aliyaTitle}): ${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
-    document.getElementById('referenceDisplay').textContent = title;
+    // Check if parsha is defined before using it in the title
+    if (parsha) {
+        const title = `${parsha}: ${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
+        document.getElementById('referenceDisplay').textContent = title;
+    } else {
+        console.error("Parsha is not selected.");
+        document.getElementById('referenceDisplay').textContent = "Please select a Parsha.";
+    }
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
         const chapterOsisID = `${bookCode}.${chapter}`;
@@ -1302,7 +1305,6 @@ async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
                     const morphCode = word.getAttribute("morph");
                     const morphDescription = morphologyData[morphCode];
 
-                    // Highlight nouns, proper nouns, verbs, and construct nouns
                     if (morphCode && /(^|[^V])N/.test(morphCode)) {
                         wordSpan.classList.add("highlight-noun");
                         if (/(^|[^V])Np/.test(morphCode)) {
@@ -1332,7 +1334,6 @@ async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
                         }
                     }
 
-                    // Set up click for word details
                     wordSpan.onclick = async () => {
                         const wordInfo = verseDiv.querySelector('.word-info');
                         wordInfo.innerHTML = `
@@ -1340,7 +1341,7 @@ async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
                             <section><span class="section-title">Lemma:</span> ${lemma}</section>
                             <section><span class="section-title">Morphology Code:</span> ${morphCode}</section>
                             <section><span class="section-title">Morphology Description:</span> ${morphDescription || 'Not available in data.'}`;
-                        
+
                         const bdbSection = document.createElement('section');
                         bdbSection.className = 'bdb-section';
                         const lemmaNumber = lemma.match(/\d+/)?.[0];
@@ -1371,6 +1372,9 @@ async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
             }
         });
     }
+
+    // Update word counts in the filter box after loading the verses
+    initializeWordCounts(); 
 
     if (Object.keys(properNounCounts).length > 0 || Object.keys(verbCounts).length > 0) {
         updateChart();
@@ -1719,37 +1723,71 @@ function filterVersesByLemma(selectedLemma, chartTypeSelect) {
 }
 
 
-let activeFilters = {}; // Track active filters by their type classes
+let activeFilters = {}; // Track active filters
 
-function filterByType(typeClass) {
+// Initialize counts and populate word counts in the UI
+function initializeWordCounts() {
+    const filterTypes = ["highlight-noun", "highlight-proper-noun", "construct-noun", "highlight-verb"];
+    filterTypes.forEach(typeClass => {
+        const words = getUniqueWords(typeClass);
+        const count = words.size; 
+        console.log(`Setting count for ${typeClass}: ${count} words found.`);
+
+        const countElement = document.getElementById(`${typeClass}-count`);
+        if (countElement) {
+            countElement.textContent = count;
+        }
+    });
+}
+
+// Gather unique words for each type with logging
+function getUniqueWords(typeClass) {
+    const words = new Set();
+    document.querySelectorAll(`.word-container.${typeClass}`).forEach(wordSpan => {
+        words.add(wordSpan.textContent);
+        console.log(`Adding word to ${typeClass}: ${wordSpan.textContent}`);
+    });
+    console.log(`Total unique words for ${typeClass}:`, words.size);
+    return words;
+}
+
+// Toggle filter state on checkbox click
+function toggleFilter(typeClass) {
     const verseContainer = document.getElementById('verseContainer');
     const verses = verseContainer.querySelectorAll('.verse-container');
 
-    // Toggle the active state of the clicked filter
     if (activeFilters[typeClass]) {
-        delete activeFilters[typeClass]; // Remove filter if it was active
+        console.log(`Deactivating filter: ${typeClass}`);
+        delete activeFilters[typeClass];
     } else {
-        activeFilters[typeClass] = true; // Add filter if it was inactive
+        console.log(`Activating filter: ${typeClass}`);
+        activeFilters[typeClass] = true;
     }
 
-    // Update the active filter styling in the filter bar
-    document.querySelectorAll('.highlight-key div').forEach(div => {
-        const span = div.querySelector('span');
-        const spanTypeClass = span.className.split(' ').find(cls => cls.startsWith('highlight-') || cls.startsWith('construct-'));
-        
-        if (spanTypeClass === typeClass) {
-            div.classList.toggle(`active-filter-${typeClass}`, !!activeFilters[typeClass]);
-        }
-    });
-
-    // Determine which verses to show based on active filters
     verses.forEach(verse => {
-        const hasActiveType = Array.from(verse.querySelectorAll('.word-container')).some(wordSpan => {
-            return Object.keys(activeFilters).some(filterClass => wordSpan.classList.contains(filterClass));
-        });
-        verse.style.display = Object.keys(activeFilters).length === 0 || hasActiveType ? 'block' : 'none';
+        const hasType = Array.from(verse.querySelectorAll('.word-container')).some(wordSpan =>
+            Object.keys(activeFilters).some(filterClass => wordSpan.classList.contains(filterClass))
+        );
+        verse.style.display = Object.keys(activeFilters).length === 0 || hasType ? 'block' : 'none';
     });
 }
+
+// Show or hide the list of words when the count is clicked
+function toggleWordsDisplay(typeClass) {
+    const wordsListContainer = document.getElementById(`${typeClass}-words`);
+    if (wordsListContainer.style.display === 'block') {
+        wordsListContainer.style.display = 'none';
+        console.log(`Hiding words for ${typeClass}`);
+    } else {
+        const words = getUniqueWords(typeClass);
+        wordsListContainer.innerHTML = `Words: ${Array.from(words).join(', ')}`;
+        wordsListContainer.style.display = 'block';
+        console.log(`Displaying words for ${typeClass}: ${Array.from(words).join(', ')}`);
+    }
+}
+
+// Initialize counts on page load
+window.addEventListener('load', initializeWordCounts);
 
 function showAllWords() {
     const verseContainer = document.getElementById('verseContainer');
