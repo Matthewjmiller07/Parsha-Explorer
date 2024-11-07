@@ -176,6 +176,64 @@
         .word-container:hover .tooltip {
             display: block;
         }
+
+        .filter-box {
+    padding: 15px;
+    background-color: #f0f4f8;
+    border: 1px solid #d1e3f1;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filter-description {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.highlight-key {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.highlight-key div {
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+    font-weight: bold;
+}
+
+/* Styling each filter type with enhanced visibility */
+.highlight-key div:hover {
+    background-color: #e0e0e0;
+}
+
+.active-filter-highlight-noun {
+    background-color: #FFEB3B; /* Yellow */
+    color: #333;
+    border: 2px solid #FFC107;
+}
+
+.active-filter-highlight-proper-noun {
+    background-color: #333;
+    color: #fff;
+    border: 2px solid #444;
+}
+
+.active-filter-construct-noun {
+    background-color: #90CAF9; /* Light Blue */
+    color: #333;
+    border: 2px solid #42A5F5;
+}
+
+.active-filter-highlight-verb {
+    background-color: #FFD54F; /* Gold */
+    color: #333;
+    border: 2px solid #FFB300;
+}
     </style>
     
    
@@ -256,20 +314,7 @@
         </div>
     </div>
 
-    <div class="highlight-key">
-        <div onclick="filterByType('highlight-noun')">
-            <span class="highlight-noun" style="cursor: pointer;">Yellow Highlight</span>: Noun
-        </div>
-        <div onclick="filterByType('highlight-proper-noun')">
-            <span class="highlight-proper-noun" style="cursor: pointer; border: 1px solid black;">Black Outlined Box</span>: Proper Noun
-        </div>
-        <div onclick="filterByType('construct-noun')">
-            <span class="construct-noun" style="cursor: pointer; border: 1px dashed;">Dashed Border</span>: Construct Noun
-        </div>
-        <div onclick="filterByType('highlight-verb')">
-            <span class="highlight-verb" style="cursor: pointer; background-color: #ffd700; font-weight: bold;">Gold Highlight</span>: Verb
-        </div>
-    </div>
+
 
     <button onclick="showAllWords()">Show All Words</button>
     
@@ -278,6 +323,26 @@
     <div id="error" class="error" style="display:none"></div>
     
     <div class="title-display" id="referenceDisplay">Loading Title...</div>
+
+    <div class="filter-box">
+        <div class="filter-description">
+            <strong>Filters:</strong> Click on a filter to highlight specific types of words in the text. Click again to toggle off.
+        </div>
+        <div class="highlight-key">
+            <div onclick="filterByType('highlight-noun')">
+                <span class="highlight-noun">Yellow Highlight</span>: Noun
+            </div>
+            <div onclick="filterByType('highlight-proper-noun')">
+                <span class="highlight-proper-noun">Black Outlined Box</span>: Proper Noun
+            </div>
+            <div onclick="filterByType('construct-noun')">
+                <span class="construct-noun">Dashed Border</span>: Construct Noun
+            </div>
+            <div onclick="filterByType('highlight-verb')">
+                <span class="highlight-verb">Gold Highlight</span>: Verb
+            </div>
+        </div>
+    </div>
 
     <div class="controls">
         <label for="chartTypeSelect">Select Chart Type:</label>
@@ -1654,18 +1719,35 @@ function filterVersesByLemma(selectedLemma, chartTypeSelect) {
 }
 
 
+let activeFilters = {}; // Track active filters by their type classes
+
 function filterByType(typeClass) {
     const verseContainer = document.getElementById('verseContainer');
     const verses = verseContainer.querySelectorAll('.verse-container');
 
-    verses.forEach(verse => {
-        // Check if the verse contains any words with the selected type
-        const hasType = Array.from(verse.querySelectorAll('.word-container')).some(wordSpan => 
-            wordSpan.classList.contains(typeClass)
-        );
+    // Toggle the active state of the clicked filter
+    if (activeFilters[typeClass]) {
+        delete activeFilters[typeClass]; // Remove filter if it was active
+    } else {
+        activeFilters[typeClass] = true; // Add filter if it was inactive
+    }
 
-        // Show the entire verse if it contains a word of the selected type, otherwise hide it
-        verse.style.display = hasType ? 'block' : 'none';
+    // Update the active filter styling in the filter bar
+    document.querySelectorAll('.highlight-key div').forEach(div => {
+        const span = div.querySelector('span');
+        const spanTypeClass = span.className.split(' ').find(cls => cls.startsWith('highlight-') || cls.startsWith('construct-'));
+        
+        if (spanTypeClass === typeClass) {
+            div.classList.toggle(`active-filter-${typeClass}`, !!activeFilters[typeClass]);
+        }
+    });
+
+    // Determine which verses to show based on active filters
+    verses.forEach(verse => {
+        const hasActiveType = Array.from(verse.querySelectorAll('.word-container')).some(wordSpan => {
+            return Object.keys(activeFilters).some(filterClass => wordSpan.classList.contains(filterClass));
+        });
+        verse.style.display = Object.keys(activeFilters).length === 0 || hasActiveType ? 'block' : 'none';
     });
 }
 
