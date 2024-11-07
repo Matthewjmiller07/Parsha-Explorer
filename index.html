@@ -1166,15 +1166,17 @@ async function loadAliyaRange(startRef = null, endRef = null) {
     properNounCounts = {};
     verbCounts = {};
 
+    const parshaSelect = document.getElementById('parshaSelect');
     const aliyaSelect = document.getElementById('aliyaSelect');
-    const aliyaRange = aliyaSelect.value;
+    const selectedParsha = parshaSelect.options[parshaSelect.selectedIndex]?.text;
+    const selectedAliya = aliyaSelect.options[aliyaSelect.selectedIndex]?.text;
 
     if (!startRef || !endRef) {
-        if (!aliyaRange) {
+        if (!aliyaSelect.value) { 
             showError("Please select a valid Aliya.");
             return;
         }
-        [startRef, endRef] = aliyaRange.split("-").map(ref => ref.trim());
+        [startRef, endRef] = aliyaSelect.value.split("-").map(ref => ref.trim()); 
     }
 
     const [startBook, startRefPoint] = startRef.split(" ");
@@ -1195,8 +1197,8 @@ async function loadAliyaRange(startRef = null, endRef = null) {
     verseContainer.innerHTML = '';
 
     // Display range as title
-    const title = `${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
-    document.getElementById('referenceDisplay').textContent = title;
+    const title = `${selectedParsha} - ${selectedAliya}: ${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
+        document.getElementById('referenceDisplay').textContent = title;
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
         const chapterOsisID = `${bookCode}.${chapter}`;
