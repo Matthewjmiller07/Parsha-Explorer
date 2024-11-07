@@ -1144,10 +1144,9 @@ async function fetchBookData(bookId) {
         aliyaSelect.value = currentAliya;
         // We do not call loadAliyaRangeFromAliya() here to avoid unnecessary reload
     } else {
-        // Otherwise, load the entire Parsha and reset currentAliya
         currentAliya = null;
         const [startRef, endRef] = aliyot["Whole Parsha"].split("-");
-        loadAliyaRange(startRef.trim(), endRef.trim());
+        loadAliyaRange(startRef.trim(), endRef.trim(), selectedParsha); // Remove "Whole Parsha" argument
     }
 }
 
@@ -1161,7 +1160,7 @@ function loadAliyaRangeFromAliya() {
     }
 }
 
-async function loadAliyaRange(startRef = null, endRef = null) {
+async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
     // Reset counts for proper nouns and verbs for new data load
     properNounCounts = {};
     verbCounts = {};
@@ -1171,6 +1170,7 @@ async function loadAliyaRange(startRef = null, endRef = null) {
     const selectedParsha = parshaSelect.options[parshaSelect.selectedIndex]?.text;
     const selectedAliya = aliyaSelect.options[aliyaSelect.selectedIndex]?.text;
 
+    // Set the default range if no start or end reference is provided
     if (!startRef || !endRef) {
         if (!aliyaSelect.value) { 
             showError("Please select a valid Aliya.");
@@ -1196,9 +1196,10 @@ async function loadAliyaRange(startRef = null, endRef = null) {
     const verseContainer = document.getElementById('verseContainer');
     verseContainer.innerHTML = '';
 
-    // Display range as title
-    const title = `${selectedParsha} - ${selectedAliya}: ${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
-        document.getElementById('referenceDisplay').textContent = title;
+    // Format title
+    const aliyaTitle = selectedAliya === "Select Aliya" ? "Whole Parsha" : selectedAliya;
+    const title = `${selectedParsha} (${aliyaTitle}): ${startBook} ${startChapter}:${startVerse} - ${endChapter}:${endVerse}`;
+    document.getElementById('referenceDisplay').textContent = title;
 
     for (let chapter = startChapter; chapter <= endChapter; chapter++) {
         const chapterOsisID = `${bookCode}.${chapter}`;
@@ -1312,7 +1313,6 @@ async function loadAliyaRange(startRef = null, endRef = null) {
         console.warn("No proper nouns or verbs found in the selected range.");
     }
 }
-
 
 async function loadVerse() {
     // Reset counts for proper nouns and verbs for new data load
