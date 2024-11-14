@@ -1769,48 +1769,82 @@ window.onload = async function() {
 function updateChart() {
     const ctx = document.getElementById('properNounChart').getContext('2d');
     const chartTypeSelect = document.getElementById('chartTypeSelect').value;
-    let chartData = [], chartLabels = [], chartLabel = '', chartLemmas = [];
+    let consolidatedData = {}; // To store and consolidate frequencies by base lemma
+    let chartLabels = [], chartData = [], chartLabel = '', chartLemmas = [];
 
     const getFilteredLabel = (lemmaNumber) => {
-        // Strip to numerical part only for matching with Hebrew Strong's
-        const baseLemma = lemmaNumber.replace(/[^0-9]/g, '');
+        const baseLemma = lemmaNumber.match(/\d+/)?.[0]; // Extract only the numeric portion
+        if (!baseLemma) {
+            console.error(`Unable to parse base lemma from lemmaNumber: ${lemmaNumber}`);
+            return lemmaNumber;
+        }
         const lemmaID = `H${baseLemma}`;
-        return lemmaData[lemmaID]?.word || baseLemma;
+        const word = lemmaData[lemmaID]?.word || baseLemma;
+        console.log(`Label for ${lemmaNumber} (base ${baseLemma}): ${word}`);
+        return word;
+    };
+
+    const addToConsolidatedData = (lemmaNumber, frequency) => {
+        const baseLemma = lemmaNumber.match(/\d+/)?.[0];
+        if (!baseLemma) {
+            console.error(`Unable to parse base lemma from lemmaNumber: ${lemmaNumber}`);
+            return;
+        }
+        const normalizedLemma = getFilteredLabel(baseLemma);
+
+        console.log(`Adding lemma: ${lemmaNumber} as ${normalizedLemma} with frequency: ${frequency}`);
+
+        if (consolidatedData[baseLemma]) {
+            consolidatedData[baseLemma].frequency += frequency;
+        } else {
+            consolidatedData[baseLemma] = {
+                label: normalizedLemma,
+                frequency: frequency,
+                lemmaNumber: baseLemma // Store the actual lemma number
+            };
+        }
     };
 
     if (chartTypeSelect === "properNouns") {
-        const sortedProperNouns = Object.entries(properNounCounts)
+        Object.entries(properNounCounts)
             .filter(([lemma]) => !lemma.includes("+")) // Exclude compounds with "+"
-            .sort((a, b) => b[1] - a[1]);
-
-        chartLabels = sortedProperNouns.map(([lemmaNumber]) => {
-            chartLemmas.push(lemmaNumber); // Track lemma for later reference
-            return getFilteredLabel(lemmaNumber);
-        });
-
-        chartData = sortedProperNouns.map(([, frequency]) => frequency);
+            .forEach(([lemma, frequency]) => {
+                console.log(`Raw lemma: ${lemma}, frequency: ${frequency}`);
+                addToConsolidatedData(lemma, frequency);
+            });
         chartLabel = 'Proper Noun Frequency';
 
     } else if (chartTypeSelect === "verbs") {
-        const sortedVerbs = Object.entries(verbCounts)
-            .filter(([lemma]) => !lemma.includes("+")) // Exclude compounds with "+"
-            .sort((a, b) => b[1] - a[1]);
-
-        chartLabels = sortedVerbs.map(([lemmaNumber]) => {
-            chartLemmas.push(lemmaNumber); // Track lemma for later reference
-            return getFilteredLabel(lemmaNumber);
-        });
-
-        chartData = sortedVerbs.map(([, frequency]) => frequency);
+        Object.entries(verbCounts)
+            .filter(([lemma]) => !lemma.includes("+"))
+            .forEach(([lemma, frequency]) => {
+                console.log(`Raw lemma: ${lemma}, frequency: ${frequency}`);
+                addToConsolidatedData(lemma, frequency);
+            });
         chartLabel = 'Verb Frequency';
     }
+
+    // Sort consolidated data by frequency in descending order
+    const sortedData = Object.values(consolidatedData).sort((a, b) => b.frequency - a.frequency);
+
+    // Convert sorted data into chart arrays
+    chartLabels = sortedData.map(item => item.label);
+    chartData = sortedData.map(item => item.frequency);
+    chartLemmas = sortedData.map(item => item.lemmaNumber);
+
+    // Additional logging for debugging
+    console.log("Final Consolidated Data:", consolidatedData);
+    console.log("Sorted Data:", sortedData);
+    console.log("Chart Labels:", chartLabels);
+    console.log("Chart Data:", chartData);
+    console.log("Underlying Lemma Numbers:", chartLemmas);
 
     // Destroy existing chart if it exists
     if (chartInstance) {
         chartInstance.destroy();
     }
 
-    // Create new chart with filtered data
+    // Create new chart with sorted data
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1832,15 +1866,13 @@ function updateChart() {
             onClick: (event, elements) => {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
-                    const selectedLemma = chartLemmas[clickedIndex];
-                    filterVersesByLemma(selectedLemma, chartTypeSelect);
+                    const selectedLemmaNumber = chartLemmas[clickedIndex]; // Use the actual lemma number
+                    document.getElementById("lemmaInput").value = selectedLemmaNumber; // Set the input for filtering
+                    filterByLemma(); // Call the filter function
                 }
             }
         }
     });
-
-    // Log the prepared chart data for debugging
-    
 }
 
 
