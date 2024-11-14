@@ -14,6 +14,12 @@
     color: #333;
 }
 
+/* Add this CSS to your stylesheet */
+.selected {
+    background-color: #ffeb3b; /* Highlight color */
+    font-weight: bold;
+}
+
 .title-display {
     text-align: center;
     font-size: 22px;
@@ -404,6 +410,7 @@ button:hover {
     
     
     <canvas id="properNounChart" width="800" height="400"></canvas>
+    <div id="fullLemmaTable"></div>
     <canvas id="lemmaUsageChart" width="400" height="400"></canvas>
 
     <button onclick="showAllWords()">Reset Verses</button>
@@ -1267,6 +1274,7 @@ function loadAliyaRangeFromAliya() {
 }
 
 async function loadAliyaRange(startRef = null, endRef = null, parsha = null) {
+    resetContainers(); // Clear the containers at the start
     resetFilters(); // Reset filters at the start of loading a new Aliya range
     properNounCounts = {};
     verbCounts = {};
@@ -1451,6 +1459,7 @@ if (parsha) {
 }
 
 async function loadVerse() {
+    resetContainers(); // Clear the containers at the start
     resetFilters(); // Reset filters at the start of loading new verses
     properNounCounts = {};
     verbCounts = {};
@@ -1769,19 +1778,20 @@ window.onload = async function() {
 function updateChart() {
     const ctx = document.getElementById('properNounChart').getContext('2d');
     const chartTypeSelect = document.getElementById('chartTypeSelect').value;
-    let consolidatedData = {}; // To store and consolidate frequencies by base lemma
+    let consolidatedData = {}; 
     let chartLabels = [], chartData = [], chartLabel = '', chartLemmas = [];
 
     const getFilteredLabel = (lemmaNumber) => {
-        const baseLemma = lemmaNumber.match(/\d+/)?.[0]; // Extract only the numeric portion
+        const baseLemma = lemmaNumber.match(/\d+/)?.[0];
         if (!baseLemma) {
             console.error(`Unable to parse base lemma from lemmaNumber: ${lemmaNumber}`);
             return lemmaNumber;
         }
         const lemmaID = `H${baseLemma}`;
-        const word = lemmaData[lemmaID]?.word || baseLemma;
-        console.log(`Label for ${lemmaNumber} (base ${baseLemma}): ${word}`);
-        return word;
+        const entry = lemmaData[lemmaID] || {};
+        const word = entry.word || baseLemma;
+        const xlit = entry.xlit || '';
+        return { label: `${word} (${xlit})`, xlit, baseLemma };
     };
 
     const addToConsolidatedData = (lemmaNumber, frequency) => {
@@ -1790,61 +1800,58 @@ function updateChart() {
             console.error(`Unable to parse base lemma from lemmaNumber: ${lemmaNumber}`);
             return;
         }
-        const normalizedLemma = getFilteredLabel(baseLemma);
-
-        console.log(`Adding lemma: ${lemmaNumber} as ${normalizedLemma} with frequency: ${frequency}`);
-
+        const { label, xlit } = getFilteredLabel(baseLemma);
         if (consolidatedData[baseLemma]) {
             consolidatedData[baseLemma].frequency += frequency;
         } else {
             consolidatedData[baseLemma] = {
-                label: normalizedLemma,
+                label,
                 frequency: frequency,
-                lemmaNumber: baseLemma // Store the actual lemma number
+                lemmaNumber: baseLemma,
+                xlit
             };
         }
     };
 
     if (chartTypeSelect === "properNouns") {
         Object.entries(properNounCounts)
-            .filter(([lemma]) => !lemma.includes("+")) // Exclude compounds with "+"
-            .forEach(([lemma, frequency]) => {
-                console.log(`Raw lemma: ${lemma}, frequency: ${frequency}`);
-                addToConsolidatedData(lemma, frequency);
-            });
+            .filter(([lemma]) => !lemma.includes("+"))
+            .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
         chartLabel = 'Proper Noun Frequency';
-
     } else if (chartTypeSelect === "verbs") {
         Object.entries(verbCounts)
             .filter(([lemma]) => !lemma.includes("+"))
-            .forEach(([lemma, frequency]) => {
-                console.log(`Raw lemma: ${lemma}, frequency: ${frequency}`);
-                addToConsolidatedData(lemma, frequency);
-            });
+            .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
         chartLabel = 'Verb Frequency';
     }
 
-    // Sort consolidated data by frequency in descending order
     const sortedData = Object.values(consolidatedData).sort((a, b) => b.frequency - a.frequency);
+    chartLabels = sortedData.slice(0, 10).map(item => item.label);
+    chartData = sortedData.slice(0, 10).map(item => item.frequency);
+    chartLemmas = sortedData.slice(0, 10).map(item => item.lemmaNumber);
 
-    // Convert sorted data into chart arrays
-    chartLabels = sortedData.map(item => item.label);
-    chartData = sortedData.map(item => item.frequency);
-    chartLemmas = sortedData.map(item => item.lemmaNumber);
+    const fullTableHTML = sortedData.map(item => `
+        <tr onclick="filterByLemmaNumber('${item.lemmaNumber}', '${chartTypeSelect}', this)">
+            <td>${item.label}</td>
+            <td>${item.frequency}</td>
+        </tr>
+    `).join("");
 
-    // Additional logging for debugging
-    console.log("Final Consolidated Data:", consolidatedData);
-    console.log("Sorted Data:", sortedData);
-    console.log("Chart Labels:", chartLabels);
-    console.log("Chart Data:", chartData);
-    console.log("Underlying Lemma Numbers:", chartLemmas);
+    document.getElementById("fullLemmaTable").innerHTML = `
+        <table>
+            <thead>
+                <tr><th>Lemma</th><th>Frequency</th></tr>
+            </thead>
+            <tbody>
+                ${fullTableHTML}
+            </tbody>
+        </table>
+    `;
 
-    // Destroy existing chart if it exists
     if (chartInstance) {
         chartInstance.destroy();
     }
 
-    // Create new chart with sorted data
     chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1866,21 +1873,45 @@ function updateChart() {
             onClick: (event, elements) => {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
-                    const selectedLemmaNumber = chartLemmas[clickedIndex]; // Use the actual lemma number
-                    document.getElementById("lemmaInput").value = selectedLemmaNumber; // Set the input for filtering
-                    filterByLemma(); // Call the filter function
+                    const selectedLemmaNumber = chartLemmas[clickedIndex];
+                    filterVersesByLemma(selectedLemmaNumber, chartTypeSelect);
+                    highlightSelectionInChart(clickedIndex);
+                    scrollToVersesContainer();
                 }
             }
         }
     });
 }
 
+function filterByLemmaNumber(lemmaNumber, chartTypeSelect, rowElement) {
+    filterVersesByLemma(lemmaNumber, chartTypeSelect);
+    highlightSelectionInTable(rowElement);
+    scrollToVersesContainer();
+}
+
+function highlightSelectionInTable(selectedRow) {
+    document.querySelectorAll("#fullLemmaTable tbody tr").forEach(row => row.classList.remove("selected"));
+    selectedRow.classList.add("selected");
+}
+
+function highlightSelectionInChart(index) {
+    chartInstance.data.datasets[0].backgroundColor = chartInstance.data.datasets[0].backgroundColor.map((color, i) => 
+        i === index ? 'rgba(255, 159, 64, 0.8)' : 'rgba(255, 205, 86, 0.8)'
+    );
+    chartInstance.update();
+}
+
+function scrollToVersesContainer() {
+    const versesContainer = document.getElementById("verseContainer");
+    if (versesContainer) {
+        setTimeout(() => {
+            versesContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+    }
+}
 
 function filterVersesByLemma(selectedLemma, chartTypeSelect) {
     const isVerbFilter = chartTypeSelect === 'verbs';
-    
-   
-
     const verseContainer = document.getElementById('verseContainer');
     const verses = verseContainer.querySelectorAll('.verse-container');
 
@@ -1894,13 +1925,12 @@ function filterVersesByLemma(selectedLemma, chartTypeSelect) {
             const isVerb = wordSpan.classList.contains('highlight-verb');
             const isProperNoun = wordSpan.classList.contains('highlight-proper-noun');
 
-            
+            const lemmaRegex = new RegExp(`(^|[a-z]+/)${selectedLemma}(/|$)`, 'i');
 
-            // Match only within the appropriate class (verbs or proper nouns)
             if (isVerbFilter) {
-                return wordLemma === selectedLemma && isVerb;
+                return lemmaRegex.test(wordLemma) && isVerb;
             } else {
-                return wordLemma === selectedLemma && isProperNoun;
+                return lemmaRegex.test(wordLemma) && isProperNoun;
             }
         });
 
@@ -2063,7 +2093,6 @@ function toggleUniqueWordsDisplay(typeClass) {
 
 // Load lemma data from XML and store in lemmaData
 async function loadLemmaData() {
-
     try {
         const response = await fetch('HebrewStrong.xml');
         if (!response.ok) throw new Error("Failed to load lemma data");
@@ -2078,9 +2107,12 @@ async function loadLemmaData() {
             const wordNode = entry.querySelector("w");
             const word = wordNode ? wordNode.textContent : '';
             const definition = entry.querySelector("def") ? entry.querySelector("def").textContent : '';
+            const xlit = wordNode ? wordNode.getAttribute("xlit") || '' : ''; // Get xlit if available
 
-            lemmaData[lemmaID] = { word: word, definition: definition };
+            lemmaData[lemmaID] = { word: word, definition: definition, xlit: xlit };
         });
+
+        console.log("Loaded lemma data:", lemmaData); // Log to confirm data loading
     } catch (error) {
         console.error("Error loading lemma data:", error);
     }
@@ -2361,6 +2393,10 @@ function getUniqueWordsByLemma(typeClass) {
     return uniqueWords;
 }
 
+function resetContainers() {
+    document.getElementById("current-verse-container").innerHTML = "";
+    document.getElementById("related-verses-container").innerHTML = "<h3>Verses with the Same Lemma</h3>";
+}
 
 
 
