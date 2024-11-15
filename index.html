@@ -262,6 +262,18 @@ button:hover {
     height: auto;
     margin: 0 auto;
 }
+
+/* Highlight the selected word */
+.selected-word {
+    box-shadow: 0 0 10px 2px #ff4500; /* Bright orange glow */
+    position: relative;
+}
+
+/* Highlight matched words */
+.match-highlight {
+    outline: 2px solid #4CAF50; /* Green outline */
+    outline-offset: 2px;
+}
     </style>
     
    
@@ -420,17 +432,11 @@ button:hover {
     </div>
     <div id="verseContainer">
         <!-- Initial verse loading occurs here -->
-      </div>
-      
-      <div id="current-verse-container" class="verse-container">
+    </div>
+    
+    <div id="current-verse-container" class="verse-container">
         <!-- Displays the current verse when lemma search is triggered -->
-      </div>
-      
-      <div id="related-verses-container" class="verse-container">
-        <h3>Verses with the Same Lemma</h3>
-        <!-- Displays other verses with the same lemma -->
-      </div>
-
+    </div>
     
  
     
@@ -1410,6 +1416,7 @@ if (parsha) {
             <section><span class="section-title">Morphology Description:</span> ${morphDescription || 'Not available in data.'}</section>
             <div class="search-options">
                 <button onclick="displayLemmaOccurrences('${lemma}', 'section')">Find in Section</button>
+                <button onclick="findInTanach('${lemma}')">Find in Tanach</button>
             </div>`;
 
         const bdbSection = document.createElement('section');
@@ -1575,6 +1582,7 @@ async function loadVerse() {
             <section><span class="section-title">Morphology Description:</span> ${morphDescription || 'Not available in data.'}</section>
             <div class="search-options">
                 <button onclick="displayLemmaOccurrences('${lemma}', 'section')">Find in Section</button>
+                <button onclick="findInTanach('${lemma}')">Find in Tanach</button>
             </div>`;
 
         const bdbSection = document.createElement('section');
@@ -1655,6 +1663,25 @@ function calculateLemmaUsagePercentage() {
     } else {
         
     }
+}
+
+async function findInTanach(lemmaNumber) {
+    const numericLemmaNumber = lemmaNumber.match(/\d+/)?.[0];
+
+    if (!numericLemmaNumber) {
+        console.error("Invalid lemma number. Please provide a valid lemma.");
+        return;
+    }
+
+    // Reset to Whole Tanach
+    document.getElementById("bookSelect").value = "Whole Tanach";
+    document.getElementById("verseRange").value = ""; // Clear any range input
+
+    // Load the whole Tanach into the verse container
+    await loadVerse();
+
+    // After loading, filter and highlight the lemma
+    displayLemmaOccurrences(numericLemmaNumber);
 }
 
 // Function to display lemma details upon word click
@@ -1778,7 +1805,7 @@ window.onload = async function() {
 function updateChart() {
     const ctx = document.getElementById('properNounChart').getContext('2d');
     const chartTypeSelect = document.getElementById('chartTypeSelect').value;
-    let consolidatedData = {}; 
+    let consolidatedData = {};
     let chartLabels = [], chartData = [], chartLabel = '', chartLemmas = [];
 
     const getFilteredLabel = (lemmaNumber) => {
@@ -1830,8 +1857,8 @@ function updateChart() {
     chartData = sortedData.slice(0, 10).map(item => item.frequency);
     chartLemmas = sortedData.slice(0, 10).map(item => item.lemmaNumber);
 
-    const fullTableHTML = sortedData.map(item => `
-        <tr onclick="filterByLemmaNumber('${item.lemmaNumber}', '${chartTypeSelect}', this)">
+    const fullTableHTML = sortedData.map((item, index) => `
+        <tr onclick="handleTableRowClick('${item.lemmaNumber}', ${index})">
             <td>${item.label}</td>
             <td>${item.frequency}</td>
         </tr>
@@ -1874,31 +1901,48 @@ function updateChart() {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
                     const selectedLemmaNumber = chartLemmas[clickedIndex];
-                    filterVersesByLemma(selectedLemmaNumber, chartTypeSelect);
-                    highlightSelectionInChart(clickedIndex);
-                    scrollToVersesContainer();
+                    handleChartBarClick(selectedLemmaNumber, clickedIndex);
                 }
             }
         }
     });
 }
 
-function filterByLemmaNumber(lemmaNumber, chartTypeSelect, rowElement) {
-    filterVersesByLemma(lemmaNumber, chartTypeSelect);
-    highlightSelectionInTable(rowElement);
-    scrollToVersesContainer();
-}
 
+
+function filterByLemmaNumber(lemmaNumber) {
+    document.getElementById("lemmaInput").value = lemmaNumber; // Populate input field for transparency
+    filterByLemma(); // Use the updated filter function
+    scrollToVersesContainer(); // Scroll to verses container
+}
+// Highlight a row in the table
 function highlightSelectionInTable(selectedRow) {
     document.querySelectorAll("#fullLemmaTable tbody tr").forEach(row => row.classList.remove("selected"));
     selectedRow.classList.add("selected");
 }
 
 function highlightSelectionInChart(index) {
-    chartInstance.data.datasets[0].backgroundColor = chartInstance.data.datasets[0].backgroundColor.map((color, i) => 
-        i === index ? 'rgba(255, 159, 64, 0.8)' : 'rgba(255, 205, 86, 0.8)'
+    const dataset = chartInstance.data.datasets[0];
+    dataset.backgroundColor = dataset.backgroundColor.map((color, i) => 
+        i === index ? 'rgba(255, 159, 64, 0.8)' : 'rgba(255, 205, 86, 0.8)' // Highlight the selected bar
     );
-    chartInstance.update();
+    chartInstance.update(); // Refresh chart to apply changes
+}
+
+// Handle clicking on a table row
+function handleTableRowClick(lemmaNumber, rowIndex) {
+    const tableRow = document.querySelectorAll("#fullLemmaTable tbody tr")[rowIndex];
+    filterByLemmaNumber(lemmaNumber); // Filter verses using correct lemma logic
+    highlightSelectionInTable(tableRow); // Highlight table row
+    highlightSelectionInChart(rowIndex); // Highlight chart bar
+}
+
+// Handle clicking on a chart bar
+function handleChartBarClick(lemmaNumber, chartIndex) {
+    const tableRow = document.querySelectorAll("#fullLemmaTable tbody tr")[chartIndex];
+    filterByLemmaNumber(lemmaNumber); // Filter verses using correct lemma logic
+    highlightSelectionInTable(tableRow); // Highlight table row
+    highlightSelectionInChart(chartIndex); // Highlight chart bar
 }
 
 function scrollToVersesContainer() {
@@ -2142,63 +2186,59 @@ function updateParshaFromSlider() {
     loadAliyot(); // Load Aliyot but keep the current Aliya selection
 }
 
-function displayLemmaOccurrences(lemmaNumber, scope) {
-    
+function displayLemmaOccurrences(lemmaNumber) {
+    const numericLemmaNumber = lemmaNumber.match(/\d+/)?.[0];
+    const verseContainer = document.getElementById('verseContainer');
+    const verses = verseContainer.querySelectorAll('.verse-container');
 
-    // Strip out non-numeric characters from lemmaNumber, in case it has a prefix
-    const numericLemmaNumber = lemmaNumber.match(/\d+/)[0];
-   
+    if (!numericLemmaNumber) {
+        console.error("Invalid lemma number for highlighting.");
+        return;
+    }
 
-    // Define containers for the current verse and related verses
-    const currentVerseContainer = document.getElementById('current-verse-container');
-    const relatedVersesContainer = document.getElementById('related-verses-container');
-    relatedVersesContainer.innerHTML = ''; // Clear any previous content
+    // Clear previous highlights
+    document.querySelectorAll('.word-container').forEach(word => {
+        word.classList.remove('selected-word', 'match-highlight');
+    });
+    verses.forEach(verse => {
+        verse.classList.remove('highlighted-verse');
+        verse.style.display = 'none'; // Hide all verses initially
+    });
 
-    // Get all loaded verses in the current section (range)
-    const verses = document.querySelectorAll('#verseContainer .verse-container');
-  
+    let foundMatch = false;
 
-    // Track if we've already displayed the current verse
-    let isCurrentVerseDisplayed = false;
-
-    verses.forEach((verse, index) => {
-       
-        
+    verses.forEach(verse => {
         const words = verse.querySelectorAll('.word-container');
         let containsLemma = false;
 
         words.forEach(wordSpan => {
             const wordLemma = wordSpan.getAttribute('data-lemma');
-            
-            
-            // Check if numericLemmaNumber is in the numeric part of wordLemma
-            const lemmaMatch = wordLemma && wordLemma.match(/\d+/);
+            const lemmaMatch = wordLemma?.match(/\d+/);
+
             if (lemmaMatch && lemmaMatch[0] === numericLemmaNumber) {
-                
                 containsLemma = true;
+                wordSpan.classList.add('match-highlight'); // Highlight matched word
             }
         });
 
         if (containsLemma) {
-            if (!isCurrentVerseDisplayed) {
-                
-                currentVerseContainer.innerHTML = `<h3>Current Verse</h3>${verse.outerHTML}`;
-                isCurrentVerseDisplayed = true;
-            } else {
-               
-                relatedVersesContainer.innerHTML += `<div class="related-verse">${verse.outerHTML}</div>`;
-            }
-        } else {
-           
+            foundMatch = true;
+
+            // Display the matched verse and highlight the container
+            verse.style.display = 'block';
+            verse.classList.add('highlighted-verse');
         }
     });
 
-    if (!relatedVersesContainer.innerHTML) {
-       
-        relatedVersesContainer.innerHTML = `<p>No other occurrences found for this lemma in the current section.</p>`;
+    if (foundMatch) {
+        // Scroll to the first highlighted verse
+        const firstMatch = document.querySelector('.verse-container.highlighted-verse');
+        if (firstMatch) {
+            firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } else {
+        console.warn(`No occurrences found for lemma: ${numericLemmaNumber}`);
     }
-
-   
 }
 
 async function searchOccurrencesInSection(lemmaNumber) {
@@ -2284,14 +2324,32 @@ async function findOccurrencesByLemma(lemmaNumber, range = 'section') {
 
 function filterByLemma() {
     const lemmaInput = document.getElementById("lemmaInput").value.trim();
-    const lemmaNumber = lemmaInput.replace(/\D/g, ''); // Keep only numbers
+    const numericLemma = lemmaInput.match(/\d+/)?.[0]; // Extract only the numeric part of the lemma
+    const verseContainer = document.getElementById("verseContainer");
+    const verses = verseContainer.querySelectorAll(".verse-container");
 
-    const verses = document.querySelectorAll("#verseContainer .verse-container");
+    if (!numericLemma) {
+        console.warn("Invalid lemma input. Please enter a valid lemma.");
+        return;
+    }
+
     verses.forEach(verse => {
-        const hasLemma = Array.from(verse.querySelectorAll(".word-container")).some(word => 
-            word.getAttribute("data-lemma") && word.getAttribute("data-lemma").includes(lemmaNumber)
-        );
-        verse.style.display = hasLemma ? "block" : "none";
+        const words = verse.querySelectorAll(".word-container");
+        let containsLemma = false;
+
+        words.forEach(wordSpan => {
+            const wordLemma = wordSpan.getAttribute("data-lemma");
+            const wordNumericLemma = wordLemma?.match(/\d+/)?.[0]; // Extract numeric part from word lemma
+            if (wordNumericLemma === numericLemma) {
+                wordSpan.classList.add("highlight-lemma-occurrence"); // Highlight matched words
+                containsLemma = true;
+            } else {
+                wordSpan.classList.remove("highlight-lemma-occurrence"); // Remove highlight from non-matching words
+            }
+        });
+
+        // Show or hide the verse based on whether it contains the lemma
+        verse.style.display = containsLemma ? "block" : "none";
     });
 }
 
@@ -2394,10 +2452,11 @@ function getUniqueWordsByLemma(typeClass) {
 }
 
 function resetContainers() {
-    document.getElementById("current-verse-container").innerHTML = "";
-    document.getElementById("related-verses-container").innerHTML = "<h3>Verses with the Same Lemma</h3>";
-}
+    const verseContainer = document.getElementById('verseContainer');
 
+    // Reset the content of containers if they exist
+    if (verseContainer) verseContainer.innerHTML = '';
+}
 
 
 
