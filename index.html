@@ -270,10 +270,110 @@ button:hover {
 }
 
 /* Highlight matched words */
+:root {
+    --match-highlight-color: #4CAF50; /* Green used for matched lemmas */
+}
+
 .match-highlight {
-    outline: 2px solid #4CAF50; /* Green outline */
+    outline: 2px solid var(--match-highlight-color); /* Use the CSS variable */
     outline-offset: 2px;
 }
+
+#tableToggleWrapper {
+    margin-top: 20px;
+    text-align: center;
+}
+
+#toggleTableButton {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#toggleTableButton:hover {
+    background-color: #357abd;
+}
+
+/* Wrapper for the table with scroll and styling */
+#fullLemmaTableWrapper {
+    margin-top: 20px;
+    max-height: 400px; /* Limit the height of the table */
+    overflow-y: scroll; /* Always show the vertical scroll bar */
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* Subtle shadow for better separation */
+}
+
+/* Scrollbar styling */
+#fullLemmaTableWrapper::-webkit-scrollbar {
+    width: 12px; /* Width of the scrollbar */
+}
+
+#fullLemmaTableWrapper::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Light background for the scrollbar track */
+    border-radius: 5px;
+}
+
+#fullLemmaTableWrapper::-webkit-scrollbar-thumb {
+    background-color: var(--match-highlight-color); /* Match scrollbar thumb to highlight color */
+    border-radius: 5px;
+    border: 2px solid #f9f9f9; /* Padding around thumb */
+}
+
+#fullLemmaTableWrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #45a049; /* Slightly darker green on hover */
+}
+
+/* Ensure table spans full width */
+#fullLemmaTable {
+    width: 100%; /* Full width for responsiveness */
+    border-collapse: collapse; /* Remove space between borders */
+}
+
+/* Table header styling */
+#fullLemmaTable th {
+    background-color: #e8f0fa; /* Light blue background for header */
+    color: #333; /* Dark text for readability */
+    font-weight: bold;
+    text-align: left;
+    padding: 10px;
+    border-bottom: 2px solid #d1e3f1; /* Slightly thicker border for distinction */
+}
+
+/* Table body row styling */
+#fullLemmaTable tbody tr {
+    transition: background-color 0.3s ease; /* Smooth hover effect */
+    cursor: pointer; /* Indicate interactivity */
+}
+
+/* Styling for table cells */
+#fullLemmaTable th, #fullLemmaTable td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #d1e3f1; /* Subtle divider between rows */
+    font-size: 16px; /* Maintain consistent font size */
+}
+
+/* Highlighted (selected) row styling */
+#fullLemmaTable tbody tr.selected {
+    background-color: var(--match-highlight-color); /* Use consistent highlight color */
+    color: white; /* Better contrast for selected row */
+    font-weight: bold; /* Emphasize selected row */
+    border-left: 5px solid var(--match-highlight-color); /* Add an accent to the left */
+}
+
+/* Row hover styling */
+#fullLemmaTable tbody tr:hover {
+    background-color: #f0f8ff; /* Light blue on hover */
+}
+
     </style>
     
    
@@ -422,7 +522,22 @@ button:hover {
     
     
     <canvas id="properNounChart" width="800" height="400"></canvas>
-    <div id="fullLemmaTable"></div>
+    <div id="tableToggleWrapper">
+        <button id="toggleTableButton" onclick="toggleTable()">Show Full Table</button>
+    </div>
+    <div id="fullLemmaTableWrapper">
+        <table id="fullLemmaTable">
+            <thead>
+                <tr>
+                    <th>Lemma</th>
+                    <th>Frequency</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Rows are dynamically generated and inserted here -->
+            </tbody>
+        </table>
+    </div>
     <canvas id="lemmaUsageChart" width="400" height="400"></canvas>
 
     <button onclick="showAllWords()">Reset Verses</button>
@@ -1805,7 +1920,7 @@ window.onload = async function() {
 function updateChart() {
     const ctx = document.getElementById('properNounChart').getContext('2d');
     const chartTypeSelect = document.getElementById('chartTypeSelect').value;
-    let consolidatedData = {};
+    let consolidatedData = {}; 
     let chartLabels = [], chartData = [], chartLabel = '', chartLemmas = [];
 
     const getFilteredLabel = (lemmaNumber) => {
@@ -1875,6 +1990,10 @@ function updateChart() {
         </table>
     `;
 
+    // Hide the table by default when updating the chart
+    document.getElementById("fullLemmaTableWrapper").style.display = "none";
+    document.getElementById("toggleTableButton").textContent = "Show Full Table";
+
     if (chartInstance) {
         chartInstance.destroy();
     }
@@ -1886,8 +2005,8 @@ function updateChart() {
             datasets: [{
                 label: chartLabel,
                 data: chartData,
-                backgroundColor: 'rgba(255, 205, 86, 0.8)',
-                borderColor: 'rgba(255, 159, 64, 1)',
+                backgroundColor: Array(chartLabels.length).fill('rgba(255, 205, 86, 0.8)'),
+                borderColor: Array(chartLabels.length).fill('rgba(255, 159, 64, 1)'),
                 borderWidth: 1
             }]
         },
@@ -1901,11 +2020,28 @@ function updateChart() {
                 if (elements.length > 0) {
                     const clickedIndex = elements[0].index;
                     const selectedLemmaNumber = chartLemmas[clickedIndex];
-                    handleChartBarClick(selectedLemmaNumber, clickedIndex);
+                    filterByLemmaNumber(selectedLemmaNumber); // Filter verses using correct logic
+                    highlightSelectionInChart(clickedIndex); // Highlight chart bar
+                    const tableRow = document.querySelectorAll("#fullLemmaTable tbody tr")[clickedIndex];
+                    if (tableRow) highlightSelectionInTable(tableRow); // Highlight table row
                 }
             }
         }
     });
+}
+
+function highlightSelectionInTable(selectedIndex) {
+    const rows = document.querySelectorAll("#fullLemmaTable tbody tr");
+    rows.forEach((row, index) => {
+        // Add 'selected' class only to the clicked row
+        row.classList.toggle("selected", index === selectedIndex);
+    });
+}
+
+function handleTableClick(lemmaNumber, rowIndex, chartType) {
+    filterByLemmaNumber(lemmaNumber, chartType); // Filters verses
+    highlightSelectionInTable(rowIndex); // Highlights the clicked table row
+    highlightSelectionInChart(rowIndex); // Highlights the corresponding chart bar
 }
 
 
@@ -1923,8 +2059,10 @@ function highlightSelectionInTable(selectedRow) {
 
 function highlightSelectionInChart(index) {
     const dataset = chartInstance.data.datasets[0];
+    const matchHighlightColor = getComputedStyle(document.documentElement).getPropertyValue('--match-highlight-color').trim();
+
     dataset.backgroundColor = dataset.backgroundColor.map((color, i) => 
-        i === index ? 'rgba(255, 159, 64, 0.8)' : 'rgba(255, 205, 86, 0.8)' // Highlight the selected bar
+        i === index ? matchHighlightColor : 'rgba(255, 205, 86, 0.8)' // Default bar color
     );
     chartInstance.update(); // Refresh chart to apply changes
 }
@@ -2457,7 +2595,18 @@ function resetContainers() {
     // Reset the content of containers if they exist
     if (verseContainer) verseContainer.innerHTML = '';
 }
+function toggleTable() {
+    const tableWrapper = document.getElementById('fullLemmaTableWrapper');
+    const toggleButton = document.getElementById('toggleTableButton');
 
+    if (tableWrapper.style.display === 'none') {
+        tableWrapper.style.display = 'block';
+        toggleButton.textContent = 'Hide Full Table';
+    } else {
+        tableWrapper.style.display = 'none';
+        toggleButton.textContent = 'Show Full Table';
+    }
+}
 
 
 
