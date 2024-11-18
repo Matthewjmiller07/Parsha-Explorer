@@ -383,28 +383,8 @@ button:hover {
 <body>
     <div class="controls">
         <div class="controls-section">
-            <label for="parshaSelect">Parsha:</label>
-            <select id="parshaSelect" onchange="loadAliyot()">
-                <option value="">Select Parsha</option>
-            </select>
-            
-            <!-- Slider for Parsha selection -->
-            <div class="slider-wrapper">
-                <label for="parshaSlider">Slide to Select:</label>
-                <input type="range" id="parshaSlider" min="0" max="53" value="0" oninput="updateParshaFromSlider()">
-                <span id="sliderValue">Bereshit</span> <!-- Display selected Parsha name -->
-            </div>
-            
-            <label for="aliyaSelect">Aliya:</label>
-            <select id="aliyaSelect" onchange="loadAliyaRange()">
-                <option value="">Select Aliya</option>
-            </select>
-        </div>
-    </div>
-        <!-- Book, Chapter, and Verse Selection Section -->
-        <div class="controls-section">
             <label for="bookSelect">Book:</label>
-            <select id="bookSelect">
+            <select id="bookSelect" onchange="handleBookChange()">
                 <option value="">Select Book</option>
                 <option value="Whole Tanach">Whole Tanach</option>
                 <option value="Genesis">Genesis (בראשית)</option>
@@ -446,12 +426,24 @@ button:hover {
                 <option value="Nehemiah">Nehemiah (נחמיה)</option>
                 <option value="1 Chronicles">1 Chronicles (דברי הימים א)</option>
                 <option value="2 Chronicles">2 Chronicles (דברי הימים ב)</option>
-            </select>
-        
+                </select>
+
+            <div id="parshaSection" style="display: none;">
+                <label for="parshaSelect">Parsha:</label>
+                <select id="parshaSelect" onchange="loadAliyot()">
+                    <option value="">Select Parsha</option>
+                </select>
+
+                <label for="aliyaSelect">Aliya:</label>
+                <select id="aliyaSelect" onchange="loadAliyaRange()">
+                    <option value="">Select Aliya</option>
+                </select>
+            </div>
+
             <label for="verseRange">Verse/Range:</label>
-            <input type="text" id="verseRange" placeholder="e.g., 1:1 or 2:1-3:4">
-        
-            <button onclick="loadVerse()">Load Selection</button>
+            <input type="text" id="verseRange" placeholder="e.g., 1:1 or 2:1-3:4" oninput="handleVerseRangeInput()">
+
+            <button onclick="loadContent()">Load Selection</button>
         </div>
     </div>
 
@@ -1342,17 +1334,20 @@ async function fetchBookData(bookId) {
 }
 
 
-        function populateParshaDropdown() {
-        const parshaSelect = document.getElementById('parshaSelect');
-        parshaSelect.innerHTML = '<option value="">Select Parsha</option>'; // Reset options
+function populateParshaDropdown(bookName) {
+            const parshaSelect = document.getElementById('parshaSelect');
+            parshaSelect.innerHTML = '<option value="">Select Parsha</option>';
 
-        for (let parsha in parshaData) {
-            let option = document.createElement('option');
-            option.value = parsha;
-            option.textContent = parsha;
-            parshaSelect.appendChild(option);
+            for (let parsha in parshaData) {
+                // Check if the Parsha belongs to the selected book
+                if (parshaData[parsha]["Whole Parsha"].startsWith(bookName)) {
+                    let option = document.createElement('option');
+                    option.value = parsha;
+                    option.textContent = parsha;
+                    parshaSelect.appendChild(option);
+                }
+            }
         }
-    }
 
 
     function loadAliyot() {
@@ -2607,7 +2602,43 @@ function toggleTable() {
         toggleButton.textContent = 'Show Full Table';
     }
 }
+function handleBookChange() {
+            const bookSelect = document.getElementById('bookSelect');
+            const parshaSection = document.getElementById('parshaSection');
+            if (bookSelect.value === 'Genesis' || bookSelect.value === 'Exodus' || 
+                bookSelect.value === 'Leviticus' || bookSelect.value === 'Numbers' || 
+                bookSelect.value === 'Deuteronomy') {
+                parshaSection.style.display = 'block';
+                populateParshaDropdown(bookSelect.value); // Pass the book name to populateParshaDropdown
+            } else {
+                parshaSection.style.display = 'none';
+                resetParshaAliya();
+            }
+        }
+        function handleVerseRangeInput() {
+            resetParshaAliya();
+        }
 
+        function resetParshaAliya() {
+            const parshaSelect = document.getElementById('parshaSelect');
+            const aliyaSelect = document.getElementById('aliyaSelect');
+            parshaSelect.value = "";
+            aliyaSelect.innerHTML = '<option value="">Select Aliya</option>'; 
+        }
+
+
+        async function loadContent() {
+            const bookSelect = document.getElementById('bookSelect').value;
+            const aliyaSelect = document.getElementById('aliyaSelect').value;
+
+            if (bookSelect && aliyaSelect) {
+                loadAliyaRange(); // Load the selected Aliya
+            } else if (bookSelect) {
+                loadVerse(); // Load the verse/range or the whole book
+            } else {
+                showError("Please select a book.");
+            }
+        }
 
 
     </script>
