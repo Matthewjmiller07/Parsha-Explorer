@@ -510,14 +510,14 @@ button:hover {
         </div>
     </div>
 
-    <div class="controls" style="display: none;"> 
+    <div class="controls" id="chartControls" style="display: none;">
         <label for="chartTypeSelect">Select Chart Type:</label>
         <select id="chartTypeSelect" onchange="updateChart()">
-            <option value="properNouns">Proper Nouns</option>
-            <option value="verbs">Verbs</option>
-            <option value="adverbs">Adverbs</option>
+          <option value="properNouns">Proper Nouns</option>
+          <option value="verbs">Verbs</option>
+          <option value="adverbs">Adverbs</option>
         </select>
-    </div>
+      </div>
     
     
     <canvas id="chart" width="800" height="400" style="display: none;"></canvas>
@@ -1589,13 +1589,16 @@ if (parsha) {
     document.getElementById('referenceDisplay').style.display = 'block';
     document.querySelector('.filter-box').style.display = 'block';
     document.querySelector('.controls').style.display = 'block';
-    document.getElementById('chart').style.display = 'block';
+    
     document.getElementById('tableToggleWrapper').style.display = 'block';
    
     document.getElementById('lemmaUsageChart').style.display = 'block';
     document.querySelector('.lemma-search').style.display = 'block';
     document.querySelector('button[onclick="showAllWords()"]').style.display = 'block'; 
     document.getElementById('verseContainer').style.display = 'block'; 
+    document.getElementById('chartControls').style.display = 'block'; 
+    document.getElementById('chart').style.display = 'block';
+
 
 }
 
@@ -1772,14 +1775,14 @@ async function loadVerse() {
     document.getElementById('referenceDisplay').style.display = 'block';
     document.querySelector('.filter-box').style.display = 'block';
     document.querySelector('.controls').style.display = 'block';
-    document.getElementById('chart').style.display = 'block';
+    
     document.getElementById('tableToggleWrapper').style.display = 'block';
-   
     document.getElementById('lemmaUsageChart').style.display = 'block';
     document.querySelector('.lemma-search').style.display = 'block';
     document.querySelector('button[onclick="showAllWords()"]').style.display = 'block'; 
     document.getElementById('verseContainer').style.display = 'block'; 
-
+    document.getElementById('chartControls').style.display = 'block'; 
+    document.getElementById('chart').style.display = 'block';
 }
 
 function calculateLemmaUsagePercentage() {
@@ -2037,6 +2040,11 @@ function updateChart() {
     document.getElementById("fullLemmaTableWrapper").style.display = "none";
     document.getElementById("toggleTableButton").textContent = "Show Full Table";
 
+    // Add console.log statements to check the data
+    console.log("Chart Labels:", chartLabels);
+    console.log("Chart Data:", chartData);
+    console.log("Chart Label:", chartLabel);
+    
     if (chartInstance) {
         chartInstance.destroy();
     }
@@ -2071,6 +2079,13 @@ function updateChart() {
             }
         }
     });
+
+    // Log the chart instance to check if it's created
+    console.log("Chart instance:", chartInstance);
+
+    // Explicitly show the chart canvas after creating the chart
+    document.getElementById('chart').style.display = 'block';
+
 }
 
 function highlightSelectionInTable(selectedIndex) {
