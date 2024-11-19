@@ -461,7 +461,7 @@ button:hover {
     <div id="loading" style="display:none">Loading...</div>
     <div id="error" class="error" style="display:none"></div>
     
-    <div class="title-display" id="referenceDisplay">Loading Title...</div>
+    <div class="title-display" id="referenceDisplay" style="display: none;">Loading Title...</div>
 
     <div class="filter-box">
         <div class="filter-description">
@@ -510,7 +510,7 @@ button:hover {
         </div>
     </div>
 
-    <div class="controls">
+    <div class="controls" style="display: none;"> 
         <label for="chartTypeSelect">Select Chart Type:</label>
         <select id="chartTypeSelect" onchange="updateChart()">
             <option value="properNouns">Proper Nouns</option>
@@ -520,35 +520,34 @@ button:hover {
     </div>
     
     
-    <canvas id="chart" width="800" height="400"></canvas>
-    <div id="tableToggleWrapper">
-        <button id="toggleTableButton" onclick="toggleTable()">Show Full Table</button>
-    </div>
-    <div id="fullLemmaTableWrapper">
-        <table id="fullLemmaTable">
-            <thead>
-                <tr>
-                    <th>Lemma</th>
-                    <th>Frequency</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Rows are dynamically generated and inserted here -->
+    <canvas id="chart" width="800" height="400" style="display: none;"></canvas>
+<div id="tableToggleWrapper" style="display: none;">
+    <button id="toggleTableButton" onclick="toggleTable()">Show Full Table</button>
+</div>
+<div id="fullLemmaTableWrapper" style="display: none;">
+    <table id="fullLemmaTable">
+        <thead>
+            <tr>
+                <th>Lemma</th>
+                <th>Frequency</th>
+            </tr>
+        </thead>
+        <tbody>
             </tbody>
-        </table>
-    </div>
-    <canvas id="lemmaUsageChart" width="400" height="400"></canvas>
+    </table>
+</div>
+<canvas id="lemmaUsageChart" width="400" height="400" style="display: none;"></canvas>
 
-    <button onclick="showAllWords()">Reset Verses</button>
-    <div class="lemma-search">
-        <input type="text" id="lemmaInput" placeholder="Enter lemma number" />
-        <button onclick="filterByLemma()">Search</button>
-    </div>
-    <div id="verseContainer">
+<button onclick="showAllWords()" style="display: none;">Reset Verses</button>
+<div class="lemma-search" style="display: none;">
+    <input type="text" id="lemmaInput" placeholder="Enter lemma number" />
+    <button onclick="filterByLemma()">Search</button>
+</div>
+    <div id="verseContainer" style="display: none;"> 
         <!-- Initial verse loading occurs here -->
     </div>
     
-    <div id="current-verse-container" class="verse-container">
+    <div id="current-verse-container" class="verse-container" style="display: none;"> 
         <!-- Displays the current verse when lemma search is triggered -->
     </div>
     
@@ -1585,6 +1584,19 @@ if (parsha) {
     } else {
         console.warn("No proper nouns or verbs found in the selected range.");
     }
+
+    // Add these lines to show the hidden elements:
+    document.getElementById('referenceDisplay').style.display = 'block';
+    document.querySelector('.filter-box').style.display = 'block';
+    document.querySelector('.controls').style.display = 'block';
+    document.getElementById('chart').style.display = 'block';
+    document.getElementById('tableToggleWrapper').style.display = 'block';
+   
+    document.getElementById('lemmaUsageChart').style.display = 'block';
+    document.querySelector('.lemma-search').style.display = 'block';
+    document.querySelector('button[onclick="showAllWords()"]').style.display = 'block'; 
+    document.getElementById('verseContainer').style.display = 'block'; 
+
 }
 
 async function loadVerse() {
@@ -1755,6 +1767,19 @@ async function loadVerse() {
         const unusedLemmas = allLemmaIDs.filter(lemmaID => !usedLemmas.has(lemmaID));
         console.log("Unused lemmas:", unusedLemmas);
     }
+
+    // Add these lines to show the hidden elements:
+    document.getElementById('referenceDisplay').style.display = 'block';
+    document.querySelector('.filter-box').style.display = 'block';
+    document.querySelector('.controls').style.display = 'block';
+    document.getElementById('chart').style.display = 'block';
+    document.getElementById('tableToggleWrapper').style.display = 'block';
+   
+    document.getElementById('lemmaUsageChart').style.display = 'block';
+    document.querySelector('.lemma-search').style.display = 'block';
+    document.querySelector('button[onclick="showAllWords()"]').style.display = 'block'; 
+    document.getElementById('verseContainer').style.display = 'block'; 
+
 }
 
 function calculateLemmaUsagePercentage() {
