@@ -20,16 +20,24 @@
     font-weight: bold;
 }
 
-.title-display {
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-    color: #2c3e50;
-    background-color: #eaf2f8;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+title-display {
+  text-align: center;
+  font-size: 22px;
+  font-weight: bold;
+  color: #2c3e50;
+  background-color: #eaf2f8;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+/* Media Query for smaller screens */
+@media (max-width: 768px) { 
+  .title-display {
+    font-size: 18px; /* Slightly smaller title */
+    padding: 10px; /* Reduced padding */
+  }
 }
 
 .verse-container {
@@ -380,6 +388,12 @@ button:hover {
     background-color: #f0f8ff; /* Light blue on hover */
 }
 
+@media (max-width: 768px) { 
+  body {
+    font-size: 16px; /* Adjust base font size for better readability */
+    padding: 10px; /* Reduce padding for more content space */
+  }
+
     </style>
     
    
@@ -536,7 +550,7 @@ button:hover {
             </tbody>
     </table>
 </div>
-<canvas id="lemmaUsageChart" width="400" height="400" style="display: none;"></canvas>
+<canvas id="lemmaUsageChart" style="display: none;"></canvas>
 
 <button onclick="showAllWords()" style="display: none;">Reset Verses</button>
 <div class="lemma-search" style="display: none;">
