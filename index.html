@@ -509,11 +509,12 @@ button:hover {
         <select id="chartTypeSelect" onchange="updateChart()">
             <option value="properNouns">Proper Nouns</option>
             <option value="verbs">Verbs</option>
+            <option value="adverbs">Adverbs</option>
         </select>
     </div>
     
     
-    <canvas id="properNounChart" width="800" height="400"></canvas>
+    <canvas id="chart" width="800" height="400"></canvas>
     <div id="tableToggleWrapper">
         <button id="toggleTableButton" onclick="toggleTable()">Show Full Table</button>
     </div>
@@ -1512,10 +1513,14 @@ if (parsha) {
     }
 
     // Check for verbs specifically and count them
-    if (morphDescription && morphDescription.toLowerCase().includes("verb")) {
+    if (morphCode && morphCode.includes("V")) { 
         wordSpan.classList.add('highlight-verb');
         verbCounts[lemma] = (verbCounts[lemma] || 0) + 1;
     }
+
+    if (morphCode && morphCode.includes("D")) {
+    adverbCounts[lemma] = (adverbCounts[lemma] || 0) + 1;
+}
 
     wordSpan.onclick = async () => {
         const wordInfo = verseDiv.querySelector('.word-info');
@@ -1580,6 +1585,7 @@ async function loadVerse() {
     resetFilters(); // Reset filters at the start of loading new verses
     properNounCounts = {};
     verbCounts = {};
+    adverbCounts = {}; 
 
     const rangeInput = document.getElementById('verseRange').value.trim();
     const bookSelect = document.getElementById('bookSelect').value;
@@ -1678,10 +1684,14 @@ async function loadVerse() {
     }
 
     // Check for verbs specifically and count them
-    if (morphDescription && morphDescription.toLowerCase().includes("verb")) {
+    if (morphCode && morphCode.includes("V")) { 
         wordSpan.classList.add('highlight-verb');
         verbCounts[lemma] = (verbCounts[lemma] || 0) + 1;
     }
+
+    if (morphCode && morphCode.includes("D")) {
+    adverbCounts[lemma] = (adverbCounts[lemma] || 0) + 1;
+}
 
     wordSpan.onclick = async () => {
         const wordInfo = verseDiv.querySelector('.word-info');
@@ -1913,7 +1923,7 @@ window.onload = async function() {
 }
         
 function updateChart() {
-    const ctx = document.getElementById('properNounChart').getContext('2d');
+    const ctx = document.getElementById('chart').getContext('2d');
     const chartTypeSelect = document.getElementById('chartTypeSelect').value;
     let consolidatedData = {}; 
     let chartLabels = [], chartData = [], chartLabel = '', chartLemmas = [];
@@ -1951,16 +1961,21 @@ function updateChart() {
     };
 
     if (chartTypeSelect === "properNouns") {
-        Object.entries(properNounCounts)
-            .filter(([lemma]) => !lemma.includes("+"))
-            .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
-        chartLabel = 'Proper Noun Frequency';
-    } else if (chartTypeSelect === "verbs") {
-        Object.entries(verbCounts)
-            .filter(([lemma]) => !lemma.includes("+"))
-            .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
-        chartLabel = 'Verb Frequency';
-    }
+    Object.entries(properNounCounts)
+        .filter(([lemma]) => !lemma.includes("+"))
+        .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
+    chartLabel = 'Proper Noun Frequency';
+} else if (chartTypeSelect === "verbs") {
+    Object.entries(verbCounts)
+        .filter(([lemma]) => !lemma.includes("+"))
+        .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
+    chartLabel = 'Verb Frequency';
+} else if (chartTypeSelect === "adverbs") { // New condition for adverbs
+    Object.entries(adverbCounts)
+        .filter(([lemma]) => !lemma.includes("+"))
+        .forEach(([lemma, frequency]) => addToConsolidatedData(lemma, frequency));
+    chartLabel = 'Adverb Frequency';
+}
 
     const sortedData = Object.values(consolidatedData).sort((a, b) => b.frequency - a.frequency);
     chartLabels = sortedData.slice(0, 10).map(item => item.label);
