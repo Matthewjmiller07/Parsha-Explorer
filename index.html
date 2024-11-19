@@ -148,6 +148,12 @@ button:hover {
     padding: 2px;
 }
 
+.highlight-adverb {
+    background-color: #e3f2fd; /* Light blue background */
+    border-radius: 4px;
+    padding: 2px;
+}
+
 .construct-noun {
     border: 2px dashed black;
     background-color: #f0e68c;
@@ -484,13 +490,13 @@ button:hover {
     
             <!-- Construct Noun Filter -->
             <div class="filter-item">
-                <input type="checkbox" id="construct-noun-checkbox" onclick="toggleFilter('construct-noun')" />
-                <label for="construct-noun-checkbox">Construct Noun (Total: </label>
-                <span id="construct-noun-count" onclick="toggleWordsDisplay('construct-noun')" class="word-count">0</span>,
-                Unique: <span id="construct-noun-unique-count" onclick="toggleUniqueWordsDisplay('construct-noun')" class="word-count">0</span><label>)</label>
-                <div id="construct-noun-words" class="word-list"></div>
-                <div id="construct-noun-unique-words" class="word-list"></div>
-            </div>
+                <input type="checkbox" id="highlight-adverb-checkbox" onclick="toggleFilter('highlight-adverb')" /> 
+                <label for="highlight-adverb-checkbox">Adverb (Total: </label>
+                <span id="highlight-adverb-count" onclick="toggleWordsDisplay('highlight-adverb')" class="word-count">0</span>,
+                Unique: <span id="highlight-adverb-unique-count" onclick="toggleUniqueWordsDisplay('highlight-adverb')" class="word-count">0</span><label>)</label>
+                <div id="highlight-adverb-words" class="word-list"></div>
+                <div id="highlight-adverb-unique-words" class="word-list"></div>
+              </div>
     
             <!-- Verb Filter -->
             <div class="filter-item">
@@ -1519,7 +1525,8 @@ if (parsha) {
     }
 
     if (morphCode && morphCode.includes("D")) {
-    adverbCounts[lemma] = (adverbCounts[lemma] || 0) + 1;
+  wordSpan.classList.add('highlight-adverb'); // Add the class to the wordSpan
+  adverbCounts[lemma] = (adverbCounts[lemma] || 0) + 1;
 }
 
     wordSpan.onclick = async () => {
@@ -1690,7 +1697,8 @@ async function loadVerse() {
     }
 
     if (morphCode && morphCode.includes("D")) {
-    adverbCounts[lemma] = (adverbCounts[lemma] || 0) + 1;
+  wordSpan.classList.add('highlight-adverb'); // Add the class to the wordSpan
+  adverbCounts[lemma] = (adverbCounts[lemma] || 0) + 1;
 }
 
     wordSpan.onclick = async () => {
@@ -2155,30 +2163,25 @@ function resetFilters() {
 // Initialize counts and populate word counts in the UI
 async function initializeWordCounts() {
     await loadLemmaData(); // Ensure BDB data is loaded
-    const filterTypes = ["highlight-noun", "highlight-proper-noun", "construct-noun", "highlight-verb"];
+
+    // Add 'highlight-adverb' to the filterTypes array:
+    const filterTypes = ["highlight-noun", "highlight-proper-noun", "construct-noun", "highlight-verb", "highlight-adverb"]; 
     
     for (const typeClass of filterTypes) {
-       
-        
-        const totalWords = getTotalWords(typeClass); // Total word occurrences
-        const uniqueWords = getUniqueWordsByLemma(typeClass); // Unique lemmas with BDB names
+        const totalWords = getTotalWords(typeClass); 
+        const uniqueWords = getUniqueWordsByLemma(typeClass); 
 
-        // Update total count display
         const totalCountElement = document.getElementById(`${typeClass}-count`);
         if (totalCountElement) {
             totalCountElement.textContent = totalWords.size;
         }
 
-        // Update unique count display
         const uniqueCountElement = document.getElementById(`${typeClass}-unique-count`);
         if (uniqueCountElement) {
             uniqueCountElement.textContent = uniqueWords.size;
         }
-
-   
     }
 }
-
 // Gather total word occurrences, treating compounds as single units
 // Gather total word occurrences, treating compounds as single units
 // Gather total word occurrences, treating compounds as single units with detailed logging
@@ -2250,9 +2253,13 @@ function toggleFilter(typeClass) {
     }
 
     verses.forEach(verse => {
+        // This is the correct hasType declaration:
         const hasType = Array.from(verse.querySelectorAll('.word-container')).some(wordSpan =>
-            Object.keys(activeFilters).some(filterClass => wordSpan.classList.contains(filterClass))
+            Object.keys(activeFilters).some(filterClass => 
+                wordSpan.classList.contains(filterClass) && ['highlight-noun', 'highlight-proper-noun', 'construct-noun', 'highlight-verb', 'highlight-adverb'].includes(filterClass) 
+            )
         );
+
         verse.style.display = Object.keys(activeFilters).length === 0 || hasType ? 'block' : 'none';
     });
 }
