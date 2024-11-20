@@ -20,7 +20,7 @@
     font-weight: bold;
 }
 
-title-display {
+.title-display {
   text-align: center;
   font-size: 22px;
   font-weight: bold;
@@ -38,6 +38,76 @@ title-display {
     font-size: 18px; /* Slightly smaller title */
     padding: 10px; /* Reduced padding */
   }
+
+  .word-list {
+    max-width: 100%;
+    margin: 10px 0;
+    box-sizing: border-box;
+    border: 1px solid #ddd; /* Add a border to the word-list boxes */
+    padding: 10px;          /* Add padding to the word-list boxes */
+  }
+
+  body {
+    font-size: 16px; /* Adjust base font size for better readability */
+    padding: 10px; /* Reduce padding for more content space */
+  }
+
+  .word-counts { 
+    display: flex;
+    flex-direction: column; 
+    margin-bottom: 10px; 
+  }
+
+  .word-counts .word-count { /* Separate styles for total and unique counts */
+    margin-bottom: 5px; 
+    cursor: pointer; /* Indicate that the counts are clickable */
+  }
+
+  .verse-container {
+    padding: 15px; 
+  }
+
+  .hebrew-text {
+    font-size: 20px; /* Slightly smaller Hebrew text */
+  }
+
+  .word-info {
+    font-size: 12px; /* Smaller word information text */
+  }
+
+  select, input, button {
+    font-size: 14px; /* Smaller form elements */
+  }
+
+  .filter-box {
+    padding: 10px; 
+  }
+
+  .filter-table th, .filter-table td {
+    padding: 8px; 
+    font-size: 14px; 
+  }
+}
+
+  #lemmaUsageChart {
+    height: 250px; /* Adjust chart height for smaller screens */
+  }
+
+  .filter-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    border-bottom: 1px solid #ccc; /* Add a separator between filter items */
+    padding-bottom: 15px; /* Add padding below each filter item */
+    margin-bottom: 15px; /* Add margin below each filter item */
+  }
+
+  .filter-item>label { /* Target direct child labels */
+    font-weight: italics; 
+    margin-bottom: 5px; 
+  }
+
+
 }
 
 .verse-container {
@@ -259,6 +329,9 @@ button:hover {
     border-radius: 4px;
     font-size: 14px;
     color: #333;
+    max-height: 200px; /* Add a max-height */
+    overflow-y: auto; /* Add vertical scroll */
+    word-wrap: break-word; /* Allow long words to break */
 }
 
 .highlight-lemma-occurrence {
@@ -388,11 +461,7 @@ button:hover {
     background-color: #f0f8ff; /* Light blue on hover */
 }
 
-@media (max-width: 768px) { 
-  body {
-    font-size: 16px; /* Adjust base font size for better readability */
-    padding: 10px; /* Reduce padding for more content space */
-  }
+
 
     </style>
     
@@ -479,50 +548,70 @@ button:hover {
 
     <div class="filter-box">
         <div class="filter-description">
-            Toggle filters to highlight different word types. Click the counts to view words in each category.
+          Toggle filters to highlight different word types. Click the counts to view words in each category.
         </div>
         <div class="highlight-key">
-            <!-- Noun Filter -->
             <div class="filter-item">
-                <input type="checkbox" id="highlight-noun-checkbox" onclick="toggleFilter('highlight-noun')" />
-                <label for="highlight-noun-checkbox">Noun (Total: </label>
-                <span id="highlight-noun-count" onclick="toggleWordsDisplay('highlight-noun')" class="word-count">0</span>,
-                Unique: <span id="highlight-noun-unique-count" onclick="toggleUniqueWordsDisplay('highlight-noun')" class="word-count">0</span><label>)</label>
-                <div id="highlight-noun-words" class="word-list"></div>
-                <div id="highlight-noun-unique-words" class="word-list"></div>
-            </div>
-    
-            <!-- Proper Noun Filter -->
-            <div class="filter-item">
-                <input type="checkbox" id="highlight-proper-noun-checkbox" onclick="toggleFilter('highlight-proper-noun')" />
-                <label for="highlight-proper-noun-checkbox">Proper Noun (Total: </label>
-                <span id="highlight-proper-noun-count" onclick="toggleWordsDisplay('highlight-proper-noun')" class="word-count">0</span>,
-                Unique: <span id="highlight-proper-noun-unique-count" onclick="toggleUniqueWordsDisplay('highlight-proper-noun')" class="word-count">0</span><label>)</label>
-                <div id="highlight-proper-noun-words" class="word-list"></div>
-                <div id="highlight-proper-noun-unique-words" class="word-list"></div>
-            </div>
-    
-            <!-- Construct Noun Filter -->
-            <div class="filter-item">
-                <input type="checkbox" id="highlight-adverb-checkbox" onclick="toggleFilter('highlight-adverb')" /> 
-                <label for="highlight-adverb-checkbox">Adverb (Total: </label>
-                <span id="highlight-adverb-count" onclick="toggleWordsDisplay('highlight-adverb')" class="word-count">0</span>,
-                Unique: <span id="highlight-adverb-unique-count" onclick="toggleUniqueWordsDisplay('highlight-adverb')" class="word-count">0</span><label>)</label>
-                <div id="highlight-adverb-words" class="word-list"></div>
-                <div id="highlight-adverb-unique-words" class="word-list"></div>
+              <input type="checkbox" id="highlight-noun-checkbox" onclick="toggleFilter('highlight-noun')" />
+              <label for="highlight-noun-checkbox">Noun</label>
+              <div class="word-counts">
+                <span class="word-count" onclick="toggleWordsDisplay('highlight-noun')">
+                  Total Nouns: <span id="highlight-noun-count">0</span> 
+                </span>
+                <span class="word-count" onclick="toggleUniqueWordsDisplay('highlight-noun')">
+                  Unique Nouns: <span id="highlight-noun-unique-count">0</span> 
+                </span>
               </div>
-    
-            <!-- Verb Filter -->
-            <div class="filter-item">
-                <input type="checkbox" id="highlight-verb-checkbox" onclick="toggleFilter('highlight-verb')" />
-                <label for="highlight-verb-checkbox">Verb (Total: </label>
-                <span id="highlight-verb-count" onclick="toggleWordsDisplay('highlight-verb')" class="word-count">0</span>,
-                Unique: <span id="highlight-verb-unique-count" onclick="toggleUniqueWordsDisplay('highlight-verb')" class="word-count">0</span><label>)</label>
-                <div id="highlight-verb-words" class="word-list"></div>
-                <div id="highlight-verb-unique-words" class="word-list"></div>
+              <div id="highlight-noun-words" class="word-list"></div>
+              <div id="highlight-noun-unique-words" class="word-list"></div>
             </div>
-        </div>
-    </div>
+          
+            <div class="filter-item">
+              <input type="checkbox" id="highlight-proper-noun-checkbox" onclick="toggleFilter('highlight-proper-noun')" />
+              <label for="highlight-proper-noun-checkbox">Proper Noun</label>
+              <div class="word-counts">
+                <span class="word-count" onclick="toggleWordsDisplay('highlight-proper-noun')">
+                  Total Proper Nouns: <span id="highlight-proper-noun-count">0</span> 
+                </span>
+                <span class="word-count" onclick="toggleUniqueWordsDisplay('highlight-proper-noun')">
+                  Unique Proper Nouns: <span id="highlight-proper-noun-unique-count">0</span> 
+                </span>
+              </div>
+              <div id="highlight-proper-noun-words" class="word-list"></div>
+              <div id="highlight-proper-noun-unique-words" class="word-list"></div>
+            </div>
+          
+            <div class="filter-item">
+              <input type="checkbox" id="highlight-adverb-checkbox" onclick="toggleFilter('highlight-adverb')" />
+              <label for="highlight-adverb-checkbox">Adverb</label>
+              <div class="word-counts">
+                <span class="word-count" onclick="toggleWordsDisplay('highlight-adverb')">
+                  Total Adverbs: <span id="highlight-adverb-count">0</span> 
+                </span>
+                <span class="word-count" onclick="toggleUniqueWordsDisplay('highlight-adverb')">
+                  Unique Adverbs: <span id="highlight-adverb-unique-count">0</span> 
+                </span>
+              </div>
+              <div id="highlight-adverb-words" class="word-list"></div>
+              <div id="highlight-adverb-unique-words" class="word-list"></div>
+            </div>
+          
+            <div class="filter-item">
+              <input type="checkbox" id="highlight-verb-checkbox" onclick="toggleFilter('highlight-verb')" />
+              <label for="highlight-verb-checkbox">Verb</label>
+              <div class="word-counts">
+                <span class="word-count" onclick="toggleWordsDisplay('highlight-verb')">
+                  Total Verbs: <span id="highlight-verb-count">0</span> 
+                </span>
+                <span class="word-count" onclick="toggleUniqueWordsDisplay('highlight-verb')">
+                  Unique Verbs: <span id="highlight-verb-unique-count">0</span> 
+                </span>
+              </div>
+              <div id="highlight-verb-words" class="word-list"></div>
+              <div id="highlight-verb-unique-words" class="word-list"></div>
+            </div>
+          </div>
+          </div>
 
     <div class="controls" id="chartControls" style="display: none;">
         <label for="chartTypeSelect">Select Chart Type:</label>
