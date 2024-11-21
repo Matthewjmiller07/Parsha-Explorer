@@ -461,6 +461,39 @@ button:hover {
     background-color: #f0f8ff; /* Light blue on hover */
 }
 
+/* ... (your existing CSS) ... */
+
+#appDescription {
+  background-color: #f9f9f9; /* Light background color */
+  border: 1px solid #ddd; /* Subtle border */
+  padding: 20px;
+  margin-bottom: 20px; 
+  border-radius: 5px; 
+}
+
+#appDescription h2 {
+  margin-bottom: 10px; 
+}
+
+#appDescription p {
+  margin-bottom: 15px; 
+}
+
+#appDescription ol {
+  margin-bottom: 15px; 
+}
+
+/* Mobile-specific styles */
+@media (max-width: 768px) {
+  #appDescription {
+    padding: 15px; /* Slightly smaller padding on mobile */
+  }
+
+  #appDescription h2 {
+    font-size: 20px; /* Smaller heading on mobile */
+  }
+}
+
 
 
     </style>
@@ -470,6 +503,21 @@ button:hover {
 
 </head>
 <body>
+
+    <div id="appDescription">
+        <h2>Welcome to the Hebrew Bible Viewer!</h2>
+        <p>This tool allows you to explore the Hebrew Bible in a unique way. Here's how to use it:</p>
+        <ol>
+          <li>Select a book from the "Book" dropdown menu.</li>
+          <li>If you selected a book from the Torah, you can optionally choose a Parsha and Aliya.</li>
+          <li>Enter a specific verse or a range of verses in the "Verse/Range" box, or leave it blank to load the entire book.</li>
+          <li>Click "Load Selection" to display the selected text.</li>
+          <li>Use the filters to highlight different types of words (nouns, verbs, etc.).</li>
+          <li>Click on a word to see its details, including its lemma, morphology, and definition.</li>
+          <li>Explore the charts and tables to analyze word frequencies and usage patterns.</li>
+        </ol>
+        <p>Start exploring and gain deeper insights into the Hebrew Bible!</p>
+      </div>
     <div class="controls">
         <div class="controls-section">
             <label for="bookSelect">Book:</label>
